@@ -1,0 +1,9 @@
+# Dane CSV (wrażliwe)
+produkty.csv
+
+# Zdjęcia duże
+img/
+
+# PhpStorm
+.idea/
+*.iml
