@@ -97,11 +97,6 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 <div class="container py-2">
     <h1 class="mb-4 text-center">Generator Zapytań Ofertowych - Silosy Konsil</h1>
 
-    <!-- Wyszukiwarka -->
-    <div class="mb-4">
-        <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm"
-               placeholder="🔍 Szukaj produktu po nazwie lub kodzie...">
-    </div>
 
     <form action="wyslij.php" method="POST" class="row g-4">
         <!-- Kolumna produktów -->
@@ -159,8 +154,8 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 
                     <!-- Wyszukiwarka -->
                     <div class="mb-4">
-                        <input type="text" id="searchInput" class="form-control form-control-lg bg-light"
-                               placeholder="🔍 Szukaj produktu w tej kategorii...">
+                        <input type="text" id="searchProductsInput" class="form-control form-control-lg bg-light" placeholder="🔍 Szukaj produktu w tej kategorii...">
+
                     </div>
 
                     <!-- Tabela -->
@@ -306,102 +301,93 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 </div>
 
 <script>
-    // Globalna zmienna trzymająca aktywny filtr (KONSIL lub BIN)
-    // Globalna zmienna
-    let currentCategoryFilter = '';
+    let currentCategoryFilter = '';   // 'bin' albo 'konsil'
 
-    // KROK 1 -> KROK 2 (Wybór kategorii)
+    // KROK 1 -> KROK 2
     function selectCategory(keyword, title) {
-        currentCategoryFilter = keyword.toLowerCase();
+        currentCategoryFilter = (keyword || '').toLowerCase();
 
-        // Zmień tytuł nad tabelą
         document.getElementById('dynamicCategoryTitle').innerText = title;
-
-        // Ukryj karty, Pokaż tabelę
         document.getElementById('step-category').classList.add('d-none');
         document.getElementById('step-products').classList.remove('d-none');
 
-        // Wyczyść ewentualne wyszukiwania i przefiltruj
-        document.getElementById('searchInput').value = '';
+        const inp = document.getElementById('searchProductsInput');
+        if (inp) inp.value = '';
+
         applyFilters();
+        updateTotals(); // przelicz po zmianie widoczności
     }
 
-    // KROK 2 -> KROK 1 (Powrót do wyboru)
+    // KROK 2 -> KROK 1
     function resetCategory() {
-        // Ukryj tabelę, Pokaż karty
         document.getElementById('step-products').classList.add('d-none');
         document.getElementById('step-category').classList.remove('d-none');
+
+        // Opcjonalnie: wyczyść wyszukiwarkę i pokaż wszystkie wiersze
+        const inp = document.getElementById('searchProductsInput');
+        if (inp) inp.value = '';
+        document.querySelectorAll('.product-row').forEach(row => row.style.display = '');
+        updateTotals();
     }
 
-    // Obsługa wyszukiwarki nad tabelą
-    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-
+    // Filtrowanie (kategoria + wyszukiwarka)
     function applyFilters() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('.product-row');
+        const inp = document.getElementById('searchProductsInput');
+        const searchTerm = (inp ? inp.value : '').toLowerCase();
 
-        rows.forEach(row => {
-            // Szukaj w kodzie i nazwie
-            const text = row.cells[1].textContent.toLowerCase();
-
-            // Warunek kategorii (BIN / KONSIL) i Wyszukiwarki
-            const matchesCategory = text.includes(currentCategoryFilter);
-            const matchesSearch = text.includes(searchTerm);
-
-            // Wyświetl tylko odpowiednie wiersze
+        document.querySelectorAll('.product-row').forEach(row => {
+            const text = row.cells[1].textContent.toLowerCase(); // nazwa + kod
+            const matchesCategory = currentCategoryFilter ? text.includes(currentCategoryFilter) : true;
+            const matchesSearch = searchTerm ? text.includes(searchTerm) : true;
             row.style.display = (matchesCategory && matchesSearch) ? '' : 'none';
         });
+
+        updateTotals(); // suma tylko z widocznych
     }
 
-
-    // Wyszukiwarka tekstowa (działa TYLKO w obrębie wybranej kategorii)
-    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-
-    // Główna funkcja filtrująca (łączy warunek Karty + Wyszukiwarki)
-    function applyFilters() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('.product-row');
-
-        rows.forEach(row => {
-            // Zakładamy, że kod produktu (np. KONSIL-01) lub nazwa jest w 2 kolumnie (index 1)
-            const text = row.cells[1].textContent.toLowerCase();
-
-            // Warunek 1: Czy produkt należy do wybranej kategorii? (BIN lub KONSIL)
-            const matchesCategory = text.includes(currentCategoryFilter);
-
-            // Warunek 2: Czy produkt pasuje do ręcznie wpisanego tekstu?
-            const matchesSearch = text.includes(searchTerm);
-
-            // Pokaż wiersz tylko jeśli spełnia OBA warunki
-            row.style.display = (matchesCategory && matchesSearch) ? '' : 'none';
-        });
-    }
-
-    // Przeliczanie sum (To zostaje bez zmian)
+    // SUMOWANIE – liczy TYLKO widoczne wiersze
     function updateTotals() {
         let productTotal = 0;
-        document.querySelectorAll('.qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
-            const price = parseFloat(input.getAttribute('data-price')) || 0;
+
+        document.querySelectorAll('.product-row').forEach(row => {
+            if (row.style.display === 'none') return; // ignoruj ukryte po filtrze
+
+            const input = row.querySelector('.qty-input');
+            const qty = parseInt(input?.value, 10) || 0;
+            const price = parseFloat(input?.getAttribute('data-price')) || 0;
             productTotal += qty * price;
         });
 
-        const montaz = document.getElementById('montazCheck').checked ? ' (do wyceny)' : '';
-        const transport = document.getElementById('transportCheck').checked ? ' (do wyceny)' : '';
+        const montazChecked = document.getElementById('montazCheck')?.checked;
+        const transportChecked = document.getElementById('transportCheck')?.checked;
 
-        document.getElementById('productTotal').textContent = productTotal.toFixed(2).replace('.', ',') + ' zł';
-        document.getElementById('montazTotal').textContent = montaz || '0,00 zł';
-        document.getElementById('transportTotal').textContent = transport || '0,00 zł';
-        document.getElementById('totalValue').textContent = productTotal.toFixed(2).replace('.', ',') + ' zł' +
-            (montaz || transport ? ' + usługi' : '');
+        document.getElementById('productTotal').textContent =
+            productTotal.toFixed(2).replace('.', ',') + ' zł';
+
+        document.getElementById('montazTotal').textContent =
+            montazChecked ? ' (do wyceny)' : '0,00 zł';
+
+        document.getElementById('transportTotal').textContent =
+            transportChecked ? ' (do wyceny)' : '0,00 zł';
+
+        document.getElementById('totalValue').textContent =
+            productTotal.toFixed(2).replace('.', ',') + ' zł' + ((montazChecked || transportChecked) ? ' + usługi' : '');
     }
 
-    document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('input', updateTotals);
+    // Eventy – delegacja (działa nawet po “przełączaniu kroków”)
+    document.addEventListener('input', (e) => {
+        if (e.target.classList.contains('qty-input')) updateTotals();
     });
-    document.getElementById('montazCheck').addEventListener('change', updateTotals);
-    document.getElementById('transportCheck').addEventListener('change', updateTotals);
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'montazCheck' || e.target.id === 'transportCheck') updateTotals();
+    });
+
+    // Wyszukiwarka w tabeli
+    document.addEventListener('keyup', (e) => {
+        if (e.target.id === 'searchProductsInput') applyFilters();
+    });
 </script>
+
 
 </body>
 </html>
