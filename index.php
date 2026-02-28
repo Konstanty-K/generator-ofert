@@ -1,236 +1,263 @@
+<?php
+$test = fgetcsv(fopen("produkty.csv", "r"), 2000, ",");
+echo "<!-- Kolumn: " . count($test) . " --!>";
+?>
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silosy Konsil - Oferta Handlowa</title>
+    <title>Silosy Konsil - Generator Ofert</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* NOWA KOLORYSTYKA NAVY BLUE */
+        .sticky-summary { position: sticky; top: 20px; }
+        .product-image { width: 60px; height: 60px; object-fit: cover; }
+
         :root {
-            --main-dark: #0b2239; /* Twój wybrany kolor */
-            --accent-red: #e30613;
-            --bg-light: #f4f7f6;
+            --main-navy: #0b2239;
+            --accent-soft: #ced4da;
+            --accent-gray: #dee2e6;
+            --bg-light: #f8f9fa;
         }
 
-        body {
-            background-color: var(--bg-light);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            color: #333;
-        }
-
-        /* NAGŁÓWEK Z LOGO */
         .konsil-header {
-            background-color: var(--main-dark);
+            background-color: var(--main-navy);
             color: white;
-            padding: 20px 0;
-            border-bottom: 5px solid var(--accent-red);
-            margin-bottom: 40px;
-        }
-        .header-logo {
-            max-height: 70px; /* Dopasuj wysokość logo */
-            width: auto;
+            padding: 30px 0;
+            border-bottom: 3px solid var(--accent-soft);
+            margin-bottom: 10px;
         }
 
-        /* TABELA I STYLIZACJA */
-        .table-dark { background-color: var(--main-dark) !important; border: none; }
-        .table thead th {
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            padding: 15px;
-        }
-        .product-row { background-color: white; transition: 0.2s; }
-        .product-row:hover { background-color: #f8f9fa; }
-
-        .price-value { font-weight: 700; color: var(--main-dark); }
-        .qty-input {
-            border: 2px solid #ddd;
-            font-weight: bold;
-            text-align: center;
-            border-radius: 0;
-        }
-        .qty-input:focus { border-color: var(--main-dark); box-shadow: none; }
-
-        /* PŁYWAJĄCE PODSUMOWANIE */
-        .sticky-bottom-custom {
-            position: sticky;
-            bottom: 15px;
-            background-color: white;
-            border: 2px solid var(--main-dark);
-            border-left: 10px solid var(--main-dark);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            z-index: 1020;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        /* PRZYCISKI */
-        .btn-konsil {
-            background-color: var(--main-dark);
+        .header-logo { max-height: 100px; width: auto; margin-bottom: 10px; }
+        .header-subtext {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
             color: white;
-            border: none;
-            border-radius: 0;
-            padding: 15px;
-            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
+            margin: 0;
         }
-        .btn-konsil:hover { background-color: #1a3a5a; color: white; transform: translateY(-2px); }
 
-        #searchInput {
-            border-radius: 0;
-            border: 2px solid #ddd;
-            padding: 15px;
-        }
-        #searchInput:focus { border-color: var(--main-dark); box-shadow: none; }
+        .icon-gray { color: var(--accent-gray) !important; margin-right: 8px; }
+
     </style>
 </head>
-<body>
+<body class="bg-light">
 
-<header class="konsil-header shadow">
-    <div class="container d-flex justify-content-between align-items-center">
-        <div>
-            <img src="konsil_logo_main.png" alt="Konsil Logo" class="header-logo">
-        </div>
-        <div class="text-end d-none d-md-block">
-            <div class="fw-bold">📞 52 385-78-59</div>
-            <div class="small opacity-75">📧 silosy@konsil.pl</div>
+<!-- HEADER KONSIL NAVY (LOGO LEWO) -->
+<header class="konsil-header shadow-sm">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <!-- Logo LEWO -->
+            <div class="d-flex flex-column align-items-start">
+                <img src="konsil_logo_main.png" alt="Konsil Logo" class="header-logo">
+                <p class="header-subtext mb-0">PRZEDSIĘBIORSTWO OBSŁUGI ROLNICTWA KONSIL</p>
+            </div>
+
+            <!-- Kontakt PRAWO -->
+            <div class="text-end d-none d-md-block">
+                <div class="mb-1">
+                    <i class="bi bi-telephone-fill icon-gray"></i>
+                    <span class="fw-bold">52 385-78-59</span>
+                </div>
+                <div>
+                    <i class="bi bi-envelope icon-gray"></i>
+                    <span class="opacity-75">silosy@konsil.pl</span>
+                </div>
+            </div>
         </div>
     </div>
 </header>
 
-<div class="container pb-5">
+
+
+<div class="container py-2">
+    <h1 class="mb-4 text-center">Generator Zapytań Ofertowych - Silosy Konsil</h1>
+
+    <!-- Wyszukiwarka -->
     <div class="mb-4">
-        <label class="form-label fw-bold text-muted small">WYSZUKAJ PRODUKT:</label>
         <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm"
-               placeholder="Wyszukaj silos lub wyposażenie...">
+               placeholder="🔍 Szukaj produktu po nazwie lub kodzie...">
     </div>
 
-    <form action="wyslij.php" method="POST">
-        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 0;">
-            <div class="table-responsive">
+    <form action="wyslij.php" method="POST" class="row g-4">
+        <!-- Kolumna produktów -->
+        <div class="col-lg-8">
+            <div class="card shadow p-4">
+                <h3 class="mb-3">Wybierz Produkty</h3>
                 <table class="table align-middle" id="productTable">
                     <thead class="table-dark">
                     <tr>
-                        <th style="width: 80px;">Foto</th>
-                        <th>Produkt i Kod</th>
-                        <th class="text-end">Cena netto</th>
+                        <th style="width: 80px;">Zdjęcie</th>
+                        <th>Produkt</th>
+                        <th>Cena netto</th>
                         <th>Opis</th>
-                        <th style="width: 120px;">Ilość</th>
+                        <th style="width: 100px;">Ilość</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php
                     $file = fopen("produkty.csv", "r");
-                    fgetcsv($file);
+                    if ($file) {
+                        fgetcsv($file, 2000, ","); // Nagłówek przecinek Optima
 
-                    while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
-                        $kod   = $data[0];
-                        $nazwa = $data[1];
-                        $cena  = (float)str_replace(',', '.', $data[39]);
-                        $opis  = $data[20];
+                        while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
+                            // BEZPIECZNIE jak w Twoim kodzie (bez rygorystycznych continue)
+                            $kod = $data[0] ?? '';
+                            $nazwa = $data[1] ?? 'Brak nazwy';
+                            $cena_str = isset($data[35]) ? $data[35] : (isset($data[2]) ? $data[2] : '0'); // Cena kol 35 lub 2
+                            $opis = $data[19] ?? '';
 
-                        // TWOJA SPRAWDZONA LOGIKA ZDJĘĆ
-                        $rozszerzenia = ['webp', 'jpg', 'jpeg', 'png', 'avif'];
-                        $sciezka_foto = '';
-                        foreach ($rozszerzenia as $ext) {
-                            $test_path = "img/" . $kod . "." . $ext;
-                            if (file_exists($test_path)) {
-                                $sciezka_foto = $test_path;
-                                break;
+                            $cena = floatval(str_replace(",", ".", $cena_str));
+
+                            if (empty($kod) || empty($nazwa)) continue;
+
+                            // Multi-format foto (jak miałeś)
+                            $rozszerzenia = ['webp', 'jpg', 'jpeg', 'png', 'avif'];
+                            $sciezka_foto = 'img/brakfoto.webp';
+                            foreach ($rozszerzenia as $ext) {
+                                $test_path = "img/" . $kod . "." . $ext;
+                                if (file_exists($test_path)) {
+                                    $sciezka_foto = $test_path;
+                                    break;
+                                }
                             }
-                        }
-                        if (!$sciezka_foto) $sciezka_foto = "img/brakfoto.webp";
 
-                        echo "<tr class='product-row'>
-                                <td><img src='$sciezka_foto' width='60' height='60' style='object-fit: contain;' class='border rounded bg-white'></td>
-                                <td>
-                                    <div class='fw-bold'>$nazwa</div>
-                                    <small class='text-muted'>$kod</small>
-                                </td>
-                                <td class='price-value text-end text-nowrap' data-price='$cena'>" . number_format($cena, 2, ',', ' ') . " zł</td>
-                                <td class='small text-muted'>$opis</td>
-                                <td>
-                                    <input type='number' name='zamowienie[$nazwa]' 
-                                           class='form-control qty-input' value='0' min='0'>
-                                </td>
-                              </tr>";
+                            echo "<tr class='product-row'>
+                <td><img src='$sciezka_foto' width='60' height='60' style='object-fit:contain;' class='rounded border bg-white'></td>
+                <td><strong>$nazwa</strong><br><small class='text-muted'>Kod: $kod</small></td>
+                <td class='price-value text-end fw-bold' data-price='$cena'>" . number_format($cena, 2, ',', ' ') . " zł</td>
+                <td class='small text-muted'>$opis</td>
+                <td><input type='number' name='zamowienie[$nazwa]' class='form-control qty-input' value='0' min='0' data-price='$cena'></td>
+              </tr>";
+                        }
+                        fclose($file);
                     }
-                    fclose($file);
                     ?>
                     </tbody>
-                </table>
-            </div>
 
-            <div class="sticky-bottom-custom d-flex justify-content-between align-items-center mt-3">
-                <div>
-                    <span class="text-muted small text-uppercase fw-bold">Wartość Twojej oferty:</span>
-                    <div id="totalValue" class="h2 mb-0 fw-bold" style="color: var(--main-dark);">0,00 zł</div>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-dark px-3 py-2">NETTO</span>
-                </div>
+                </table>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm p-4 mb-5" style="border-radius: 0;">
-            <h3 class="fw-bold mb-4" style="color: var(--main-dark); border-left: 5px solid var(--accent-red); padding-left: 15px;">
-                Dane zamawiającego
-            </h3>
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <input type="text" name="klient_nazwa" class="form-control form-control-lg" placeholder="Imię i Nazwisko / Firma" style="border-radius:0;" required>
+        <!-- Kolumna podsumowania -->
+        <div class="col-lg-4">
+            <div class="sticky-summary">
+                <!-- Podsumowanie -->
+                <div class="card shadow mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Podsumowanie</h5>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Produkty:</span>
+                            <span id="productTotal" class="fw-bold">0,00 zł</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Montaż:</span>
+                            <span id="montazTotal" class="fw-bold">0,00 zł</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Transport:</span>
+                            <span id="transportTotal" class="fw-bold">0,00 zł</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="h5">Razem:</span>
+                            <span id="totalValue" class="h4 text-primary fw-bold">0,00 zł</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <input type="email" name="klient_email" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required>
+
+                <!-- Montaż i Transport -->
+                <div class="card shadow mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Dodatkowe Usługi</h5>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="montaz" id="montazCheck" value="TAK">
+                            <label class="form-check-label" for="montazCheck">
+                                <strong>Montaż</strong>
+                                <small class="d-block text-muted">Wycena indywidualna</small>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="transport" id="transportCheck" value="TAK">
+                            <label class="form-check-label" for="transportCheck">
+                                <strong>Transport</strong>
+                                <small class="d-block text-muted">Wycena indywidualna</small>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;">
-                </div>
-                <div class="col-md-6">
-                    <input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required>
-                </div>
-                <div class="col-12">
-                    <textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi lub adres montażu silosów..." style="border-radius:0;"></textarea>
+
+                <!-- Dane Klienta -->
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Twoje Dane</h5>
+                        <div class="mb-3">
+                            <input type="text" name="klient_nazwa" class="form-control"
+                                   placeholder="Imię i Nazwisko / Firma*" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="email" name="klient_email" class="form-control"
+                                   placeholder="E-mail*" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" name="klient_nip" class="form-control"
+                                   placeholder="NIP">
+                        </div>
+                        <div class="mb-3">
+                            <input type="tel" name="klient_telefon" class="form-control"
+                                   placeholder="Telefon*" required>
+                        </div>
+                        <div class="mb-3">
+                                <textarea name="uwagi" class="form-control" rows="3"
+                                          placeholder="Dodatkowe uwagi (adres dostawy, termin)"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            📧 Wyślij Zapytanie Ofertowe
+                        </button>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-konsil btn-lg mt-5 w-100 shadow">
-                PRZEŚLIJ ZAPYTANIE DO WYCENY
-            </button>
         </div>
     </form>
 </div>
 
 <script>
-    // WYSZUKIWANIE
+    // Wyszukiwarka produktów
     document.getElementById('searchInput').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('.product-row');
-        rows.forEach(row => {
-            let text = row.cells[1].textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? "" : "none";
+        const searchTerm = this.value.toLowerCase();
+        document.querySelectorAll('.product-row').forEach(row => {
+            const name = row.getAttribute('data-name');
+            row.style.display = name.includes(searchTerm) ? '' : 'none';
         });
     });
 
-    // SUMOWANIE
-    function calculateTotal() {
-        let total = 0;
-        let rows = document.querySelectorAll('.product-row');
-        rows.forEach(row => {
-            let price = parseFloat(row.querySelector('.price-value').dataset.price);
-            let qty = parseInt(row.querySelector('.qty-input').value) || 0;
-            total += price * qty;
+    // Przeliczanie sum
+    function updateTotals() {
+        let productTotal = 0;
+        document.querySelectorAll('.qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            const price = parseFloat(input.getAttribute('data-price')) || 0;
+            productTotal += qty * price;
         });
-        document.getElementById('totalValue').innerText =
-            total.toLocaleString('pl-PL', { minimumFractionDigits: 2 }) + " zł";
+
+        const montaz = document.getElementById('montazCheck').checked ? ' (do wyceny)' : '';
+        const transport = document.getElementById('transportCheck').checked ? ' (do wyceny)' : '';
+
+        document.getElementById('productTotal').textContent = productTotal.toFixed(2).replace('.', ',') + ' zł';
+        document.getElementById('montazTotal').textContent = montaz || '0,00 zł';
+        document.getElementById('transportTotal').textContent = transport || '0,00 zł';
+        document.getElementById('totalValue').textContent = productTotal.toFixed(2).replace('.', ',') + ' zł' +
+            (montaz || transport ? ' + usługi' : '');
     }
 
     document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('input', calculateTotal);
+        input.addEventListener('input', updateTotals);
     });
+    document.getElementById('montazCheck').addEventListener('change', updateTotals);
+    document.getElementById('transportCheck').addEventListener('change', updateTotals);
 </script>
-
 </body>
 </html>
