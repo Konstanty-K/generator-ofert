@@ -39,6 +39,12 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
         }
 
         .icon-gray { color: var(--accent-gray) !important; margin-right: 8px; }
+        /* Style dla kart kategorii */
+        .cursor-pointer { cursor: pointer; }
+        .category-card { transition: all 0.3s ease; border: 2px solid transparent !important; }
+        .category-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+        .category-card.selected { border: 2px solid var(--main-navy) !important; box-shadow: 0 5px 15px rgba(11, 34, 57, 0.2) !important; }
+        .category-card.selected .selection-indicator { display: block !important; background-color: var(--main-navy) !important; }
 
     </style>
 </head>
@@ -268,16 +274,57 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 </div>
 
 <script>
-    // Wyszukiwarka produktów
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        const searchTerm = this.value.toLowerCase();
-        document.querySelectorAll('.product-row').forEach(row => {
-            const name = row.getAttribute('data-name');
-            row.style.display = name.includes(searchTerm) ? '' : 'none';
-        });
-    });
+    // Globalna zmienna trzymająca aktywny filtr (KONSIL lub BIN)
+    let currentCategoryFilter = '';
 
-    // Przeliczanie sum
+    // Logika wyboru kategorii (Karty)
+    function filterCategory(keyword, clickedCard) {
+        currentCategoryFilter = keyword.toLowerCase();
+
+        // 1. Zmiana wyglądu kart (odznacz wszystkie, zaznacz klikniętą)
+        document.querySelectorAll('.category-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        clickedCard.classList.add('selected');
+
+        // 2. Pokazanie tabeli (jeśli była ukryta)
+        document.getElementById('productsContainer').classList.remove('d-none');
+
+        // Zmiana tytułu nad tabelą
+        const titleText = keyword === 'KONSIL' ? 'Silosy Lejowe' : 'Silosy Płaskodenne';
+        document.getElementById('tableTitle').innerText = 'Wybierz: ' + titleText;
+
+        // 3. Wyczyść pole wyszukiwarki
+        document.getElementById('searchInput').value = '';
+
+        // 4. Przefiltruj tabelę
+        applyFilters();
+    }
+
+    // Wyszukiwarka tekstowa (działa TYLKO w obrębie wybranej kategorii)
+    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
+
+    // Główna funkcja filtrująca (łączy warunek Karty + Wyszukiwarki)
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.product-row');
+
+        rows.forEach(row => {
+            // Zakładamy, że kod produktu (np. KONSIL-01) lub nazwa jest w 2 kolumnie (index 1)
+            const text = row.cells[1].textContent.toLowerCase();
+
+            // Warunek 1: Czy produkt należy do wybranej kategorii? (BIN lub KONSIL)
+            const matchesCategory = text.includes(currentCategoryFilter);
+
+            // Warunek 2: Czy produkt pasuje do ręcznie wpisanego tekstu?
+            const matchesSearch = text.includes(searchTerm);
+
+            // Pokaż wiersz tylko jeśli spełnia OBA warunki
+            row.style.display = (matchesCategory && matchesSearch) ? '' : 'none';
+        });
+    }
+
+    // Przeliczanie sum (To zostaje bez zmian)
     function updateTotals() {
         let productTotal = 0;
         document.querySelectorAll('.qty-input').forEach(input => {
@@ -302,5 +349,6 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
     document.getElementById('montazCheck').addEventListener('change', updateTotals);
     document.getElementById('transportCheck').addEventListener('change', updateTotals);
 </script>
+
 </body>
 </html>
