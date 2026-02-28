@@ -154,8 +154,8 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 
                     <!-- Wyszukiwarka -->
                     <div class="mb-4">
-                        <input type="text" id="searchProductsInput" class="form-control form-control-lg bg-light" placeholder="🔍 Szukaj produktu w tej kategorii...">
-
+                        <input type="text" id="searchProductsInput" class="form-control form-control-lg bg-light"
+                               placeholder="🔍 Szukaj produktu w tej kategorii...">
                     </div>
 
                     <!-- Tabela -->
@@ -179,8 +179,7 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
                                 while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
                                     $kod = $data[0] ?? '';
                                     $nazwa = $data[1] ?? 'Brak nazwy';
-                                    $cena_str = isset($data[35]) ? $data[35] : (isset($data[2]) ? $data[2] : '0');
-                                    $cena = floatval(str_replace(",", ".", $cena_str));
+                                    $cena  = (float)str_replace(',', '.', $data[39]);
                                     $opis = $data[19] ?? '';
 
                                     if (empty($kod) || empty($nazwa)) continue;
@@ -301,13 +300,12 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 </div>
 
 <script>
-    let currentCategoryFilter = '';   // 'bin' albo 'konsil'
+    let currentCategoryFilter = '';
 
-    // KROK 1 -> KROK 2
     function selectCategory(keyword, title) {
         currentCategoryFilter = (keyword || '').toLowerCase();
-
         document.getElementById('dynamicCategoryTitle').innerText = title;
+
         document.getElementById('step-category').classList.add('d-none');
         document.getElementById('step-products').classList.remove('d-none');
 
@@ -315,22 +313,18 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
         if (inp) inp.value = '';
 
         applyFilters();
-        updateTotals(); // przelicz po zmianie widoczności
+        updateTotals();
     }
 
-    // KROK 2 -> KROK 1
     function resetCategory() {
         document.getElementById('step-products').classList.add('d-none');
         document.getElementById('step-category').classList.remove('d-none');
 
-        // Opcjonalnie: wyczyść wyszukiwarkę i pokaż wszystkie wiersze
-        const inp = document.getElementById('searchProductsInput');
-        if (inp) inp.value = '';
+        // pokaż wszystko (żeby nie zostały ukryte wiersze)
         document.querySelectorAll('.product-row').forEach(row => row.style.display = '');
         updateTotals();
     }
 
-    // Filtrowanie (kategoria + wyszukiwarka)
     function applyFilters() {
         const inp = document.getElementById('searchProductsInput');
         const searchTerm = (inp ? inp.value : '').toLowerCase();
@@ -342,47 +336,38 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
             row.style.display = (matchesCategory && matchesSearch) ? '' : 'none';
         });
 
-        updateTotals(); // suma tylko z widocznych
+        updateTotals(); // suma tylko widocznych
     }
 
-    // SUMOWANIE – liczy TYLKO widoczne wiersze
     function updateTotals() {
-        let productTotal = 0;
+        let total = 0;
 
         document.querySelectorAll('.product-row').forEach(row => {
-            if (row.style.display === 'none') return; // ignoruj ukryte po filtrze
+            if (row.style.display === 'none') return;
 
             const input = row.querySelector('.qty-input');
             const qty = parseInt(input?.value, 10) || 0;
             const price = parseFloat(input?.getAttribute('data-price')) || 0;
-            productTotal += qty * price;
+            total += qty * price;
         });
 
-        const montazChecked = document.getElementById('montazCheck')?.checked;
-        const transportChecked = document.getElementById('transportCheck')?.checked;
+        const montaz = document.getElementById('montazCheck')?.checked ? ' (do wyceny)' : '';
+        const transport = document.getElementById('transportCheck')?.checked ? ' (do wyceny)' : '';
 
-        document.getElementById('productTotal').textContent =
-            productTotal.toFixed(2).replace('.', ',') + ' zł';
-
-        document.getElementById('montazTotal').textContent =
-            montazChecked ? ' (do wyceny)' : '0,00 zł';
-
-        document.getElementById('transportTotal').textContent =
-            transportChecked ? ' (do wyceny)' : '0,00 zł';
-
-        document.getElementById('totalValue').textContent =
-            productTotal.toFixed(2).replace('.', ',') + ' zł' + ((montazChecked || transportChecked) ? ' + usługi' : '');
+        document.getElementById('productTotal').textContent = total.toFixed(2).replace('.', ',') + ' zł';
+        document.getElementById('montazTotal').textContent = montaz || '0,00 zł';
+        document.getElementById('transportTotal').textContent = transport || '0,00 zł';
+        document.getElementById('totalValue').textContent = total.toFixed(2).replace('.', ',') + ' zł' +
+            (montaz || transport ? ' + usługi' : '');
     }
 
-    // Eventy – delegacja (działa nawet po “przełączaniu kroków”)
+    // Delegacja eventów: działa niezależnie od “kroków” i ukrywania/pokazywania
     document.addEventListener('input', (e) => {
         if (e.target.classList.contains('qty-input')) updateTotals();
     });
     document.addEventListener('change', (e) => {
         if (e.target.id === 'montazCheck' || e.target.id === 'transportCheck') updateTotals();
     });
-
-    // Wyszukiwarka w tabeli
     document.addEventListener('keyup', (e) => {
         if (e.target.id === 'searchProductsInput') applyFilters();
     });
