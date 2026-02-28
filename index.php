@@ -83,7 +83,52 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
     <form action="wyslij.php" method="POST" class="row g-4">
         <!-- Kolumna produktów -->
         <div class="col-lg-8">
-            <div class="card shadow p-4">
+            <!-- KATEGORIE PRODUKTÓW (Karty) -->
+            <div class="row g-3 mb-4" id="categoryCards">
+                <!-- Karta 1: Płaskodenne -->
+                <div class="col-md-6">
+                    <div class="card h-100 category-card shadow-sm cursor-pointer border-0" data-filter="BIN" onclick="filterCategory('BIN', this)">
+                        <!-- Jeśli masz zdjęcie, podmień src. Na razie placeholder -->
+                        <img src="img/plaskodenne.webp" class="card-img-top" alt="Silosy Płaskodenne" style="height: 180px; object-fit: cover; background:#e9ecef;">
+                        <div class="card-body text-center">
+                            <h4 class="card-title mb-0" style="color: var(--main-navy);">Silosy Płaskodenne</h4>
+                            <p class="text-muted small mt-2 mb-0">Systemy BIN i akcesoria</p>
+                        </div>
+                        <!-- Wskaźnik wyboru -->
+                        <div class="selection-indicator d-none bg-primary text-white text-center py-1 fw-bold">
+                            WYBRANO
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Karta 2: Lejowe -->
+                <div class="col-md-6">
+                    <div class="card h-100 category-card shadow-sm cursor-pointer border-0" data-filter="KONSIL" onclick="filterCategory('KONSIL', this)">
+                        <img src="img/lejowe.webp" class="card-img-top" alt="Silosy Lejowe" style="height: 180px; object-fit: cover; background:#e9ecef;">
+                        <div class="card-body text-center">
+                            <h4 class="card-title mb-0" style="color: var(--main-navy);">Silosy Lejowe</h4>
+                            <p class="text-muted small mt-2 mb-0">Systemy KONSIL i akcesoria</p>
+                        </div>
+                        <div class="selection-indicator d-none bg-primary text-white text-center py-1 fw-bold">
+                            WYBRANO
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dodałem ID "productsContainer" do diva z tabelą, aby można było go ukrywać/pokazywać -->
+            <div class="card shadow p-4 d-none" id="productsContainer">
+                <!-- Wyszukiwarka przeniesiona TUTAJ (żeby szukać w wybranej kategorii) -->
+                <div class="mb-4">
+                    <input type="text" id="searchInput" class="form-control form-control-lg bg-light"
+                           placeholder="🔍 Szukaj w tej kategorii po nazwie lub kodzie...">
+                </div>
+
+                <h3 class="mb-3" id="tableTitle">Wybierz Produkty</h3>
+                <!-- ... tu zostaje Twoja tabela <table class="table align-middle" id="productTable"> ... -->
+
+
+                <div class="card shadow p-4">
                 <h3 class="mb-3">Wybierz Produkty</h3>
                 <table class="table align-middle" id="productTable">
                     <thead class="table-dark">
@@ -105,10 +150,8 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
                             // BEZPIECZNIE jak w Twoim kodzie (bez rygorystycznych continue)
                             $kod = $data[0] ?? '';
                             $nazwa = $data[1] ?? 'Brak nazwy';
-                            $cena_str = isset($data[35]) ? $data[35] : (isset($data[2]) ? $data[2] : '0'); // Cena kol 35 lub 2
+                            $cena  = (float)str_replace(',', '.', $data[39]);
                             $opis = $data[19] ?? '';
-
-                            $cena = floatval(str_replace(",", ".", $cena_str));
 
                             if (empty($kod) || empty($nazwa)) continue;
 
