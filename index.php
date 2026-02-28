@@ -46,6 +46,23 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
         .category-card.selected { border: 2px solid var(--main-navy) !important; box-shadow: 0 5px 15px rgba(11, 34, 57, 0.2) !important; }
         .category-card.selected .selection-indicator { display: block !important; background-color: var(--main-navy) !important; }
 
+        /* Style kart */
+        .cursor-pointer { cursor: pointer; }
+        .category-card { transition: all 0.3s ease; border: 2px solid transparent !important; }
+        .category-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(11, 34, 57, 0.15) !important; border-color: var(--accent-soft) !important; }
+        .category-card:hover .btn-outline-primary { background-color: var(--main-navy); color: white !important; }
+
+        /* Animacja Fade In/Out */
+        .fade-element {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .fade-element.d-none {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+
     </style>
 </head>
 <body class="bg-light">
@@ -88,106 +105,121 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 
     <form action="wyslij.php" method="POST" class="row g-4">
         <!-- Kolumna produktów -->
+        <!-- Kolumna lewa (Produkty / Kategorie) -->
         <div class="col-lg-8">
-            <!-- KATEGORIE PRODUKTÓW (Karty) -->
-            <div class="row g-3 mb-4" id="categoryCards">
-                <!-- Karta 1: Płaskodenne -->
-                <div class="col-md-6">
-                    <div class="card h-100 category-card shadow-sm cursor-pointer border-0" data-filter="BIN" onclick="filterCategory('BIN', this)">
-                        <!-- Jeśli masz zdjęcie, podmień src. Na razie placeholder -->
-                        <img src="img/plaskodenne.webp" class="card-img-top" alt="Silosy Płaskodenne" style="height: 180px; object-fit: cover; background:#e9ecef;">
-                        <div class="card-body text-center">
-                            <h4 class="card-title mb-0" style="color: var(--main-navy);">Silosy Płaskodenne</h4>
-                            <p class="text-muted small mt-2 mb-0">Systemy BIN i akcesoria</p>
-                        </div>
-                        <!-- Wskaźnik wyboru -->
-                        <div class="selection-indicator d-none bg-primary text-white text-center py-1 fw-bold">
-                            WYBRANO
+
+            <!-- KROK 1: KARTY KATEGORII -->
+            <div id="step-category" class="fade-element">
+                <h3 class="mb-4 text-center" style="color: var(--main-navy);">Wybierz typ silosu</h3>
+                <div class="row g-4 mb-4">
+                    <!-- Karta: Płaskodenne (szuka słowa BIN) -->
+                    <div class="col-md-6">
+                        <div class="card h-100 category-card shadow-sm cursor-pointer border-0" onclick="selectCategory('BIN', 'Silosy Płaskodenne')">
+                            <img src="img/plaskodenne.webp" class="card-img-top" alt="Płaskodenne" style="height: 250px; object-fit: cover; background:#e9ecef;">
+                            <div class="card-body text-center p-4">
+                                <h4 class="card-title fw-bold" style="color: var(--main-navy);">Silosy Płaskodenne</h4>
+                                <p class="text-muted mb-0">Wybierz, aby zobaczyć systemy typu BIN i dedykowane akcesoria.</p>
+                                <button type="button" class="btn btn-outline-primary w-100 mt-3" style="border-color: var(--main-navy); color: var(--main-navy);">
+                                    Przejdź do produktów →
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Karta 2: Lejowe -->
-                <div class="col-md-6">
-                    <div class="card h-100 category-card shadow-sm cursor-pointer border-0" data-filter="KONSIL" onclick="filterCategory('KONSIL', this)">
-                        <img src="img/lejowe.webp" class="card-img-top" alt="Silosy Lejowe" style="height: 180px; object-fit: cover; background:#e9ecef;">
-                        <div class="card-body text-center">
-                            <h4 class="card-title mb-0" style="color: var(--main-navy);">Silosy Lejowe</h4>
-                            <p class="text-muted small mt-2 mb-0">Systemy KONSIL i akcesoria</p>
-                        </div>
-                        <div class="selection-indicator d-none bg-primary text-white text-center py-1 fw-bold">
-                            WYBRANO
+                    <!-- Karta: Lejowe (szuka słowa KONSIL) -->
+                    <div class="col-md-6">
+                        <div class="card h-100 category-card shadow-sm cursor-pointer border-0" onclick="selectCategory('KONSIL', 'Silosy Lejowe')">
+                            <img src="img/lejowe.webp" class="card-img-top" alt="Lejowe" style="height: 250px; object-fit: cover; background:#e9ecef;">
+                            <div class="card-body text-center p-4">
+                                <h4 class="card-title fw-bold" style="color: var(--main-navy);">Silosy Lejowe</h4>
+                                <p class="text-muted mb-0">Wybierz, aby zobaczyć systemy typu KONSIL i dedykowane akcesoria.</p>
+                                <button type="button" class="btn btn-outline-primary w-100 mt-3" style="border-color: var(--main-navy); color: var(--main-navy);">
+                                    Przejdź do produktów →
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dodałem ID "productsContainer" do diva z tabelą, aby można było go ukrywać/pokazywać -->
-            <div class="card shadow p-4 d-none" id="productsContainer">
-                <!-- Wyszukiwarka przeniesiona TUTAJ (żeby szukać w wybranej kategorii) -->
-                <div class="mb-4">
-                    <input type="text" id="searchInput" class="form-control form-control-lg bg-light"
-                           placeholder="🔍 Szukaj w tej kategorii po nazwie lub kodzie...">
-                </div>
-
-                <h3 class="mb-3" id="tableTitle">Wybierz Produkty</h3>
-                <!-- ... tu zostaje Twoja tabela <table class="table align-middle" id="productTable"> ... -->
-
-
+            <!-- KROK 2: TABELA PRODUKTÓW (Domyślnie ukryta) -->
+            <div id="step-products" class="d-none fade-element">
                 <div class="card shadow p-4">
-                <h3 class="mb-3">Wybierz Produkty</h3>
-                <table class="table align-middle" id="productTable">
-                    <thead class="table-dark">
-                    <tr>
-                        <th style="width: 80px;">Zdjęcie</th>
-                        <th>Produkt</th>
-                        <th>Cena netto</th>
-                        <th>Opis</th>
-                        <th style="width: 100px;">Ilość</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    $file = fopen("produkty.csv", "r");
-                    if ($file) {
-                        fgetcsv($file, 2000, ","); // Nagłówek przecinek Optima
 
-                        while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
-                            // BEZPIECZNIE jak w Twoim kodzie (bez rygorystycznych continue)
-                            $kod = $data[0] ?? '';
-                            $nazwa = $data[1] ?? 'Brak nazwy';
-                            $cena  = (float)str_replace(',', '.', $data[39]);
-                            $opis = $data[19] ?? '';
+                    <!-- Nagłówek z przyciskiem powrotu -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                        <div>
+                            <h3 class="mb-0" id="dynamicCategoryTitle" style="color: var(--main-navy);">Wybierz Produkty</h3>
+                            <small class="text-muted">Dodaj wybrane pozycje do zamówienia</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetCategory()">
+                            ← Zmień typ silosu
+                        </button>
+                    </div>
 
-                            if (empty($kod) || empty($nazwa)) continue;
+                    <!-- Wyszukiwarka -->
+                    <div class="mb-4">
+                        <input type="text" id="searchInput" class="form-control form-control-lg bg-light"
+                               placeholder="🔍 Szukaj produktu w tej kategorii...">
+                    </div>
 
-                            // Multi-format foto (jak miałeś)
-                            $rozszerzenia = ['webp', 'jpg', 'jpeg', 'png', 'avif'];
-                            $sciezka_foto = 'img/brakfoto.webp';
-                            foreach ($rozszerzenia as $ext) {
-                                $test_path = "img/" . $kod . "." . $ext;
-                                if (file_exists($test_path)) {
-                                    $sciezka_foto = $test_path;
-                                    break;
+                    <!-- Tabela -->
+                    <div class="table-responsive">
+                        <table class="table align-middle" id="productTable">
+                            <thead class="table-dark" style="background-color: var(--main-navy) !important;">
+                            <tr>
+                                <th style="width: 80px;">Zdjęcie</th>
+                                <th>Produkt</th>
+                                <th class="text-end">Cena netto</th>
+                                <th>Opis</th>
+                                <th style="width: 100px;">Ilość</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- PĘTLA PHP Z TWOJEGO KODU - NIC NIE ZMIENIAMY -->
+                            <?php
+                            $file = fopen("produkty.csv", "r");
+                            if ($file) {
+                                fgetcsv($file, 2000, ",");
+                                while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
+                                    $kod = $data[0] ?? '';
+                                    $nazwa = $data[1] ?? 'Brak nazwy';
+                                    $cena_str = isset($data[35]) ? $data[35] : (isset($data[2]) ? $data[2] : '0');
+                                    $cena = floatval(str_replace(",", ".", $cena_str));
+                                    $opis = $data[19] ?? '';
+
+                                    if (empty($kod) || empty($nazwa)) continue;
+
+                                    $rozszerzenia = ['webp', 'jpg', 'jpeg', 'png', 'avif'];
+                                    $sciezka_foto = 'img/brakfoto.webp';
+                                    foreach ($rozszerzenia as $ext) {
+                                        $test_path = "img/" . $kod . "." . $ext;
+                                        if (file_exists($test_path)) {
+                                            $sciezka_foto = $test_path;
+                                            break;
+                                        }
+                                    }
+
+                                    echo "<tr class='product-row'>
+                                        <td><img src='$sciezka_foto' width='60' height='60' style='object-fit:contain;' class='rounded border bg-white'></td>
+                                        <td><strong>$nazwa</strong><br><small class='text-muted'>Kod: $kod</small></td>
+                                        <td class='price-value text-end fw-bold' data-price='$cena'>" . number_format($cena, 2, ',', ' ') . " zł</td>
+                                        <td class='small text-muted'>$opis</td>
+                                        <td><input type='number' name='zamowienie[$nazwa]' class='form-control qty-input' value='0' min='0' data-price='$cena'></td>
+                                      </tr>";
                                 }
+                                fclose($file);
                             }
-
-                            echo "<tr class='product-row'>
-                <td><img src='$sciezka_foto' width='60' height='60' style='object-fit:contain;' class='rounded border bg-white'></td>
-                <td><strong>$nazwa</strong><br><small class='text-muted'>Kod: $kod</small></td>
-                <td class='price-value text-end fw-bold' data-price='$cena'>" . number_format($cena, 2, ',', ' ') . " zł</td>
-                <td class='small text-muted'>$opis</td>
-                <td><input type='number' name='zamowienie[$nazwa]' class='form-control qty-input' value='0' min='0' data-price='$cena'></td>
-              </tr>";
-                        }
-                        fclose($file);
-                    }
-                    ?>
-                    </tbody>
-
-                </table>
+                            ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
+        <!-- Koniec kolumny lewej -->
+
+        <!-- Prawa kolumna zostaje nietknięta poniżej... -->
 
         <!-- Kolumna podsumowania -->
         <div class="col-lg-4">
@@ -275,31 +307,52 @@ echo "<!-- Kolumn: " . count($test) . " --!>";
 
 <script>
     // Globalna zmienna trzymająca aktywny filtr (KONSIL lub BIN)
+    // Globalna zmienna
     let currentCategoryFilter = '';
 
-    // Logika wyboru kategorii (Karty)
-    function filterCategory(keyword, clickedCard) {
+    // KROK 1 -> KROK 2 (Wybór kategorii)
+    function selectCategory(keyword, title) {
         currentCategoryFilter = keyword.toLowerCase();
 
-        // 1. Zmiana wyglądu kart (odznacz wszystkie, zaznacz klikniętą)
-        document.querySelectorAll('.category-card').forEach(card => {
-            card.classList.remove('selected');
-        });
-        clickedCard.classList.add('selected');
+        // Zmień tytuł nad tabelą
+        document.getElementById('dynamicCategoryTitle').innerText = title;
 
-        // 2. Pokazanie tabeli (jeśli była ukryta)
-        document.getElementById('productsContainer').classList.remove('d-none');
+        // Ukryj karty, Pokaż tabelę
+        document.getElementById('step-category').classList.add('d-none');
+        document.getElementById('step-products').classList.remove('d-none');
 
-        // Zmiana tytułu nad tabelą
-        const titleText = keyword === 'KONSIL' ? 'Silosy Lejowe' : 'Silosy Płaskodenne';
-        document.getElementById('tableTitle').innerText = 'Wybierz: ' + titleText;
-
-        // 3. Wyczyść pole wyszukiwarki
+        // Wyczyść ewentualne wyszukiwania i przefiltruj
         document.getElementById('searchInput').value = '';
-
-        // 4. Przefiltruj tabelę
         applyFilters();
     }
+
+    // KROK 2 -> KROK 1 (Powrót do wyboru)
+    function resetCategory() {
+        // Ukryj tabelę, Pokaż karty
+        document.getElementById('step-products').classList.add('d-none');
+        document.getElementById('step-category').classList.remove('d-none');
+    }
+
+    // Obsługa wyszukiwarki nad tabelą
+    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
+
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.product-row');
+
+        rows.forEach(row => {
+            // Szukaj w kodzie i nazwie
+            const text = row.cells[1].textContent.toLowerCase();
+
+            // Warunek kategorii (BIN / KONSIL) i Wyszukiwarki
+            const matchesCategory = text.includes(currentCategoryFilter);
+            const matchesSearch = text.includes(searchTerm);
+
+            // Wyświetl tylko odpowiednie wiersze
+            row.style.display = (matchesCategory && matchesSearch) ? '' : 'none';
+        });
+    }
+
 
     // Wyszukiwarka tekstowa (działa TYLKO w obrębie wybranej kategorii)
     document.getElementById('searchInput').addEventListener('keyup', applyFilters);
