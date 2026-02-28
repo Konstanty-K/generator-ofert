@@ -4,7 +4,7 @@ echo "<!-- Kolumn: " . count($test) . " -->";
 
 // Pre-load akcesoriów z CSV do bezpiecznej tablicy JSON
 $accessoriesData = [];
-$accFile = fopen("WYCENA-ONLINE-Arkusz1.csv", "r");
+$accFile = fopen("akcesoria.csv", "r");
 if ($accFile) {
     $rowIdx = 0;
     $headers = [];
