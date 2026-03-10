@@ -1,3 +1,10 @@
+# Biblioteki Composera (najważniejsze!)
+vendor/
+
+# Pliki konfiguracyjne z hasłami (o tym za chwilę)
+config.php
+.env
+
 # Dane CSV (wrażliwe)
 produkty.csv
 akcesoria.csv
@@ -6,6 +13,14 @@ konfiguracja.csv
 # Zdjęcia duże
 img/
 
+# Biblioteki Composera (najważniejsze!)
+vendor/
+
 # PhpStorm
 .idea/
 *.iml
+
+# Pliki tymczasowe i logi XAMPP
+*.log
+.idea/
+.vscode/

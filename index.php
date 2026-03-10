@@ -128,13 +128,13 @@ foreach ($categories_config as $cat) {
 }
 
 // 3. KONFIGURACJA
-$konfiguracja = ['koszt_transportu' => 0, 'koszt_montazu' => 0, 'termin' => ''];
+$konfiguracja = ['koszt_transportu' => 0, 'koszt_montazu' => 0, 'termin' => '', 'note' => ''];
 if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r")) !== FALSE) {
     while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
         if(count($data) >= 2) {
             $klucz = trim($data[0]);
             $wartosc = trim($data[1]);
-            if ($klucz === 'termin') {
+            if (in_array($klucz, ['termin', 'note'])) {
                 $konfiguracja[$klucz] = $wartosc;
             } else {
                 $konfiguracja[$klucz] = (float)str_replace(',', '.', $wartosc);
@@ -266,7 +266,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
                         <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
                         <div class="form-check form-switch mb-3 p-3 bg-light border">
-                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz" checked>
+                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz" >
                             <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label> </div>
                         <div class="form-check form-switch mb-4 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
@@ -291,9 +291,20 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     </div>
                 </div>
             </div>
+    </form> <?php if(!empty($konfiguracja['note'])): ?>
+        <footer class="mt-5 pb-5">
+            <div class="container border-top pt-4">
+                <p class="text-center text-muted fst-italic" style="font-size: 0.75rem; line-height: 1.4;">
+                    <?php echo htmlspecialchars($konfiguracja['note']); ?>
+                </p>
+                <p class="text-center text-uppercase fw-bold mt-3" style="font-size: 0.65rem; color: #bbb; letter-spacing: 1px;">
+                    © 2026 P.O.R. KONSIL - Konfigurator Oferty Online
+                </p>
+            </div>
+        </footer>
+    <?php endif; ?>
         </div>
-    </form>
-</div>
+
 
 <script>
     const config = <?php echo json_encode($konfiguracja); ?>;
