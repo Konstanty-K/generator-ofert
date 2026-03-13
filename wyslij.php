@@ -1,4 +1,5 @@
 <?php
+$config = require 'config.php';
 require 'vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -106,15 +107,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         // Tu wpisz swoje dane SMTP (np. z XAMPP / Mailtrap / Gmail)
         $mail->isSMTP();
-        $mail->Host       = 'sandbox.smtp.mailtrap.io';
+        $mail->Host       = $config['smtp_host'];
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'b0947601e7c665';
-        $mail->Password   = '4647e8ad50db7f';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 2525;
+        $mail->Username   = $config['smtp_user'];
+        $mail->Password   = $config['smtp_pass'];
+        $mail->SMTPSecure = $config['smtp_secure'];
+        $mail->Port       = $config['smtp_port'];
         $mail->CharSet    = 'UTF-8';
 
-        $mail->setFrom('no-reply@konsil.pl', 'Konfigurator Konsil');
+        $mail->setFrom('konsil@interia.pl', 'Konfigurator Konsil');
         $mail->addAddress('silosy@konsil.pl'); // Adres firmy
         $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
