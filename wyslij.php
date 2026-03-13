@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 $config = require 'config.php';
 require 'vendor/autoload.php';
 
@@ -95,7 +97,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 3. GENEROWANIE PDF
     $options = new Options();
-    $options->set('isRemoteEnabled', true);
+    $options->set('isRemoteEnabled', true); // Dla obrazków
+    $options->set('isHtml5ParserEnabled', true);
+
+    $options->set('tempDir', __DIR__ . '/temp');
+    $options->set('fontDir', __DIR__ . '/temp'); // Dompdf będzie tu trzymać cache czcionek
+    $options->set('fontCache', __DIR__ . '/temp');
+
     $dompdf = new Dompdf($options);
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');
@@ -116,7 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom('konsil@interia.pl', 'Konfigurator Konsil');
-        $mail->addAddress('silosy@konsil.pl'); // Adres firmy
+        $mail->addAddress('konsil@interia.pl'); // Adres firmy
         $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
         $mail->isHTML(true);
