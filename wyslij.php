@@ -124,7 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom('konsil@interia.pl', 'Konfigurator Konsil');
-        $mail->addAddress('konsil@interia.pl'); // Adres firmy
+        $mail->addAddress('silosy@konsil.pl'); // Adres firmy
         $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
         $mail->isHTML(true);
@@ -134,6 +134,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // ZAŁĄCZNIK PDF
         $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_His') . '.pdf');
 
+        $mail->SMTPDebug = 2;
         $mail->send();
 
         // 5. KOMUNIKAT DLA UŻYTKOWNIKA
