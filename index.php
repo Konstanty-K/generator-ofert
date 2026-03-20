@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="author" content="inż. arch. Konstanty Kaszubski">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Silosy Konsil - Konfigurator Oferty</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -382,13 +383,24 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     <?php if(!empty($konfiguracja['note'])): ?>
         <footer class="mt-5 pb-5">
-            <div class="container border-top pt-4">
-                <p class="text-center text-muted fst-italic" style="font-size: 0.75rem; line-height: 1.4;">
-                    <?php echo htmlspecialchars($konfiguracja['note']); ?>
-                </p>
-                <p class="text-center text-uppercase fw-bold mt-3" style="font-size: 0.65rem; color: #bbb; letter-spacing: 1px;">
-                    © 2026 P.O.R. KONSIL - Konfigurator Oferty Online
-                </p>
+            <div class="container border-top pt-4 text-center">
+                <?php if(!empty($konfiguracja['note'])): ?>
+                    <p class="text-muted fst-italic mb-4" style="font-size: 0.75rem; line-height: 1.4;">
+                        <?php echo htmlspecialchars($konfiguracja['note']); ?>
+                    </p>
+                <?php endif; ?>
+
+                <div class="opacity-50">
+                    <p class="mb-1 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 1.5px;">
+                        © 2026 P.O.R. KONSIL - Konfigurator Oferty Online
+                    </p>
+                    <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
+                        Projekt i realizacja:
+                        <a href="#" class="text-decoration-none text-dark fw-bold" style="border-bottom: 1px solid #ccc;">
+                            inż. arch.  Konstanty Kaszubski
+                        </a>
+                    </p>
+                </div>
             </div>
         </footer>
     <?php endif; ?>

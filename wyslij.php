@@ -1,4 +1,9 @@
 <?php
+/**
+ * Realizacja: inż. arch. Konstanty Kaszubski
+ * Data: Marzec 2026
+ * Projekt: Konfigurator Konsil
+ */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
