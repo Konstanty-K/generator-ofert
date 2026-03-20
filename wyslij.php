@@ -160,48 +160,127 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Debugowanie tylko jeśli ustawione w configu
         $mail->SMTPDebug = (!empty($config['debug'])) ? 2 : 0;
 
-        $mail->setFrom($config['email_from'], 'Konfigurator Konsil');
-        $mail->addAddress($config['email_to']);
-        $mail->addReplyTo($klient['email'], $klient['nazwa']);
-
         $mail->isHTML(true);
-        $mail->Subject = 'Zapytanie ofertowe: ' . $payload['silo']['nazwa'] . ' - ' . $klient['nazwa'];
-        $mail->Body    = "Pojawiło się nowe zapytanie ofertowe wygenerowane przez system online.<br><br>
+
+        $firmMailSent = false;
+        $clientMailSent = false;
+
+        try {
+            $mail->setFrom($config['email_from'], 'Konfigurator Konsil');
+            $mail->addAddress($config['email_to']);
+            $mail->addReplyTo($klient['email'], $klient['nazwa']);
+
+
+            // --- mail do Firmy ---
+            $mail->Subject = 'Zapytanie ofertowe: ' . $payload['silo']['nazwa'] . ' - ' . $klient['nazwa'];
+            $mail->Body = "Pojawiło się nowe zapytanie ofertowe.<br><br>
                           <b>Klient:</b> {$klient['nazwa']}<br>
                           <b>Wartość:</b> " . number_format($payload['total'], 2, ',', ' ') . " zł netto<br><br>
-                          Szczegóły znajdują się w załączonym pliku PDF.";
+                          PDF w załączniku.";
 
-        $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
+            $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
 
-        $mail->send();
+            $mail->send();
+        } catch (\Exception $e) {
+            // Jeśli nie wyszło do firmy, to mamy poważny problem z serwerem
+            die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Błąd: {$mail->ErrorInfo}");        }
 
-        // 5. KOMUNIKAT DLA UŻYTKOWNIKA
-        echo '
+        // --- mail 2: DO KLIENTA (ROLNIKA) ---
+        if ($firmMailSent) {
+            try {
+                $mail->clearAddresses(); // CZYŚCIMY ADRES FIRMY, żeby nie wysłać do nich ponownie
+                // Sprawdzamy czy adres ma sens przed dodaniem
+                if (filter_var($klient['email'], FILTER_VALIDATE_EMAIL)) {
+                    $mail->addAddress($klient['email']); // DODAJEMY ADRES KLIENTA
+
+                    $mail->Subject = 'Podsumowanie Twojej konfiguracji silosu - Konsil';
+                    $mail->Body = "
+        <div style='font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px;'>
+            <h2 style='color: #0b2239;'>Dzień dobry!</h2>
+            <p>Dziękujemy za skorzystanie z konfiguratora ofert online na stronie 
+               <a href='https://www.konsil.pl' style='color: #0b2239; font-weight: bold; text-decoration: none;'>www.konsil.pl</a>.
+            </p>
+            <p>Otrzymaliśmy Twoje zapytanie dotyczące modelu: <b>" . htmlspecialchars($payload['silo']['nazwa']) . "</b>.</p>
+            <p>Nasi doradcy przeanalizują Twoją konfigurację i skontaktują się z Tobą, aby przedstawić finalną ofertę.</p>
+            
+            <div style='background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0b2239; margin: 20px 0;'>
+                <p style='margin: 0; font-weight: bold; color: #0b2239;'>Masz pytania? Zadzwoń do nas:</p>
+                <p style='margin: 10px 0 0 0; font-size: 1.2rem;'>
+                    <a href='tel:+48523857859' style='color: #d9534f; text-decoration: none; font-weight: bold;'>52 385-78-59</a>
+                </p>
+            </div>
+
+            <p>Szczegółowe podsumowanie Twojej konfiguracji znajdziesz w <b>załączonym pliku PDF</b>.</p>
+            
+            <hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'>
+            <p style='font-size: 0.9rem; color: #777;'>
+                Z poważaniem,<br>
+                <strong>Zespół P.O.R. KONSIL</strong><br>
+                ul. Nakielska ,XX-XXX Ślesin<br>
+                <a href='https://www.konsil.pl' style='color: #777;'>www.konsil.pl</a>
+            </p>
+        </div>";
+
+                    $mail->send(); // Wysyłamy drugi mail
+                    $clientMailSent = true;
+                }
+            } catch (\Exception $e) {
+                // Tutaj nie przerywamy skryptu (die), bo firma już dostała maila!
+                $clientMailSent = false;
+            }
+        }
+
+        // --- KROK 5: KOMUNIKAT DLA UŻYTKOWNIKA (DYNAMICZNY) ---
+        ?>
         <!DOCTYPE html>
         <html lang="pl">
         <head>
             <meta charset="UTF-8">
-            <title>Wysłano zapytanie</title>
+            <title>Status zapytania - Konsil</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
             <style>
                 body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
                 .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; border-radius: 0; text-align: center; max-width: 600px; }
+                .btn-konsil { background-color: #0b2239; color: white; border-radius: 0; padding: 12px 30px; font-weight: bold; text-transform: uppercase; }
+                .btn-konsil:hover { background-color: #162e4a; color: white; }
             </style>
         </head>
         <body>
-            <div class="success-card shadow-lg">
+        <div class="success-card shadow-lg">
+
+            <?php if ($clientMailSent): ?>
                 <i class="bi bi-check2-circle text-success" style="font-size: 5rem;"></i>
-                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">DZIĘKUJEMY!</h1>
-                <p class="lead text-muted">Twoje zapytanie dotyczące silosu <strong>' . htmlspecialchars($payload['silo']['nazwa']) . '</strong> zostało pomyślnie wysłane.</p>
-                <p class="text-muted">Nasi doradcy skontaktują się z Tobą pod adresem: <br><strong>' . htmlspecialchars($klient['email']) . '</strong></p>
-                <hr class="my-4">
-                <a href="index.php" class="btn btn-dark btn-lg px-5" style="border-radius:0; background-color: #0b2239;">Wróć do konfiguratora</a>
-            </div>
+                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">WYSŁANO!</h1>
+                <p class="lead text-muted">
+                    Zapytanie dotyczące silosu <strong><?php echo htmlspecialchars($payload['silo']['nazwa']); ?></strong> trafiło do naszych doradców.
+                </p>
+                <p class="text-muted">Kopię konfiguracji wysłaliśmy na Twój e-mail: <br><strong><?php echo htmlspecialchars($klient['email']); ?></strong></p>
+
+            <?php else: ?>
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">PRZYJĘTO ZAPYTANIE</h1>
+                <p class="lead text-muted">
+                    Twoja wycena została zapisana w naszym systemie. Doradca skontaktuje się z Tobą telefonicznie.
+                </p>
+                <div class="alert alert-warning border-0 rounded-0 small text-start">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Uwaga:</strong> Nie mogliśmy dostarczyć kopii na adres: <u><?php echo htmlspecialchars($klient['email']); ?></u>.
+                    Prawdopodobnie zawiera on literówkę lub Twoja skrzynka odrzuciła wiadomość.
+                </div>
+            <?php endif; ?>
+
+            <hr class="my-4">
+            <a href="index.php" class="btn btn-konsil btn-lg px-5 shadow-sm">Wróć do konfiguratora</a>
+        </div>
         </body>
-        </html>';
+        </html>
+        <?php
 
     } catch (Exception $e) {
-        echo "Błąd wysyłki: {$mail->ErrorInfo}";
+        // Ten blok wyłapie tylko błędy krytyczne (np. awaria serwera pocztowego firmy)
+        echo "<h3>Wystąpił błąd krytyczny serwera pocztowego:</h3>";
+        echo "<p>{$mail->ErrorInfo}</p>";
+        echo "<a href='index.php'>Wróć i spróbuj ponownie</a>";
     }
 }
