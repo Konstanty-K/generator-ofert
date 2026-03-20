@@ -44,6 +44,31 @@
             object-fit: contain;
             margin-bottom: 10px;
         }
+        /* Styl dla zablokowanej kategorii */
+        .category-tile.disabled {
+            opacity: 0.7;
+            filter: grayscale(80%); /* Lekkie wyszarzenie obrazka */
+            cursor: not-allowed;
+            position: relative;
+            pointer-events: none; /* Całkowicie blokuje kliknięcia w JS */
+        }
+
+        /* Nakładka "Wkrótce" */
+        .coming-soon-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            background-color: var(--main-navy);
+            color: white;
+            padding: 5px 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            z-index: 5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
 
         .section-title { color: var(--main-navy); border-left: 5px solid var(--main-navy); padding-left: 15px; font-weight: bold; }
         .table-dark { background-color: var(--main-navy) !important; border: none; }
@@ -82,7 +107,8 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
 $categories_config = [
         ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'WYCENA- ONLINE - silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
         ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png'],
-        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png']
+        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
 ];
 
 $categories_data = [];
@@ -445,16 +471,24 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     }
 
     function renderCategories() {
-        document.getElementById('categories-container').innerHTML = categories.map(cat => `
-            <div class="col-md-4">
-                <div class="card category-tile h-100 shadow-sm text-center" onclick="selectCategory('${cat.id}', this)">
+        document.getElementById('categories-container').innerHTML = categories.map(cat => {
+            // Sprawdzamy czy kategoria ma flagę disabled
+            const isDisabled = cat.disabled === true;
+
+            return `
+            <div class="col-md-3"> <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
+                     onclick="${isDisabled ? '' : `selectCategory('${cat.id}', this)`}">
+
+                    ${isDisabled ? '<div class="coming-soon-badge"><i class="bi bi-clock me-1"></i> WKRÓTCE</div>' : ''}
+
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
-                        <img src="${cat.img}" alt="${cat.name}" class="category-img" onerror="this.onerror=null; this.src='';">
-                        <h6 class="fw-bold m-0 mt-2" style="color: var(--main-navy); text-transform:uppercase; font-size: 0.85rem;">${cat.name}</h6>
+                        <img src="${cat.img}" alt="${cat.name}" class="category-img" onerror="this.onerror=null; this.src='img/placeholder.png';">
+                        <h6 class="fw-bold m-0 mt-2" style="color: var(--main-navy); text-transform:uppercase; font-size: 0.8rem;">${cat.name}</h6>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
         toggleStep(1);
     }
 
