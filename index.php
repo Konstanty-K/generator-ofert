@@ -321,7 +321,10 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                             <span class="text-uppercase fw-bold text-muted small">Wartość orientacyjna:</span>
                             <span class="badge" style="background-color: var(--main-navy);">NETTO</span>
                         </div>
-                        <div id="totalValue" class="display-6 fw-bold mb-2" style="color: var(--main-navy);">0,00 zł</div>
+                        <div id="totalValue" class="display-6 fw-bold mb-0" style="color: var(--main-navy);">0,00 zł</div>
+                        <div id="totalValueGross" class="text-muted small mb-3" style="font-size: 0.85rem;">
+                            w tym VAT (23%): 0,00 zł brutto
+                        </div>
 
                         <?php if(!empty($konfiguracja['termin'])): ?>
                             <div class="small text-muted fst-italic mb-4 text-center">
@@ -506,12 +509,15 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
         document.getElementById('totalValue').innerText = formatPrice(finalTotal) + " zł";
+        let finalTotalGross = finalTotal * 1.23;
+        document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
         let payload = {
             silo: selectedSilo, akcesoria: [], qty: qty, baseCost: baseCost,
             montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
             transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
             total: finalTotal,
+            totalGross: finalTotal * 1.23,
             isVat: document.getElementById('klient_vat').checked,
             isRyczalt: document.getElementById('klient_ryczalt').checked
         };
