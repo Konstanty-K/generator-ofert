@@ -29,18 +29,17 @@
         .header-subtext { font-size: 0.75rem; font-weight: 600; letter-spacing: 1.5px; margin: 0; }
         .icon-gray { color: var(--accent-soft) !important; margin-right: 8px; }
 
-        /* KAFELKI KATEGORII (PIONOWE) */
         .category-tile {
             border: 2px solid transparent;
             border-radius: 0;
             transition: all 0.2s;
             cursor: pointer;
-            min-height: 250px; /* Wymuszenie proporcji pionowych */
+            min-height: 250px;
         }
         .category-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important; }
         .category-tile.active { border-color: var(--main-navy); background-color: white; }
         .category-img {
-            height: 180px; /* Wyższe zdjęcie */
+            height: 180px;
             width: 100%;
             object-fit: contain;
             margin-bottom: 10px;
@@ -193,8 +192,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                     <th class="text-end">Cena netto</th>
                                 </tr>
                                 </thead>
-                                <tbody id="silos-tbody">
-                                </tbody>
+                                <tbody id="silos-tbody"></tbody>
                             </table>
                         </div>
                     </div>
@@ -218,8 +216,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                     <th class="text-end">Cena netto</th>
                                 </tr>
                                 </thead>
-                                <tbody id="accessories-tbody">
-                                </tbody>
+                                <tbody id="accessories-tbody"></tbody>
                             </table>
                         </div>
 
@@ -233,22 +230,38 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                 <div class="card border-0 shadow-sm p-4 mb-5" id="dane-klienta" style="border-radius: 0;">
                     <h3 class="section-title mb-4">4. Dane kontaktowe do wyceny</h3>
                     <div class="row g-4">
-                        <div class="col-md-6"><input type="text" name="klient_nazwa" aria-label="Imię i Nazwisko / Firma" class="form-control form-control-lg" placeholder="Imię i Nazwisko / Firma" style="border-radius:0;" required></div>
-                        <div class="col-md-6"><input type="email" name="klient_email" aria-label="Adres E-mail" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required></div>
-                        <div class="col-md-6"><input type="text" name="klient_nip" aria-label="NIP" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
-                        <div class="col-md-6"><input type="tel" name="klient_telefon" aria-label="Numer telefonu" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
-                        <div class="col-12"><textarea name="uwagi" aria-label="Dodatkowe uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+                        <div class="col-md-6"><input type="text" name="klient_nazwa" class="form-control form-control-lg" placeholder="Imię i Nazwisko / Firma" style="border-radius:0;" required></div>
+                        <div class="col-md-6"><input type="email" name="klient_email" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required></div>
+                        <div class="col-md-6"><input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
+                        <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
+                        <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+
+                        <div class="col-12 mt-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_vat" id="klient_vat" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_vat">Jestem płatnikiem VAT</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_ryczalt" id="klient_ryczalt" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_ryczalt">Rolnik ryczałtowy</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tax-error" class="text-danger small d-none mt-1 fw-bold">Błąd: Nie można wybrać obu statusów jednocześnie.</div>
+                        </div>
 
                         <div class="col-12">
                             <hr class="my-4">
-
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" value="1" id="zgoda_rodo" name="zgoda_rodo" required>
                                 <label class="form-check-label small text-muted" for="zgoda_rodo">
                                     Oświadczam, że zapoznałem się z klauzulą informacyjną RODO i wyrażam zgodę na przetwarzanie moich danych w celu przygotowania oferty. [Wymagane]
                                 </label>
                             </div>
-
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" value="1" id="chce_adres" name="chce_adres" onchange="toggleAddressFields()">
                                 <label class="form-check-label fw-bold" for="chce_adres" style="color: var(--main-navy);">
@@ -271,7 +284,6 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </div>
                     </div>
                 </div>
-
             </div>
 
             <div class="col-lg-4">
@@ -279,7 +291,6 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     <div class="card border-0 shadow p-4" style="border-radius: 0; border-top: 5px solid var(--main-navy);">
                         <h4 class="fw-bold mb-3" style="color: var(--main-navy);">Twoja konfiguracja</h4>
                         <hr>
-
                         <div class="mb-4">
                             <div class="d-flex justify-content-between small text-muted mb-2">
                                 <span>Wybrany silos:</span>
@@ -297,11 +308,13 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
                         <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
                         <div class="form-check form-switch mb-3 p-3 bg-light border">
-                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz" >
-                            <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label> </div>
+                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz">
+                            <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label>
+                        </div>
                         <div class="form-check form-switch mb-4 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
-                            <label class="form-check-label fw-bold" for="usluga_transport">Zlecam Transport</label> </div>
+                            <label class="form-check-label fw-bold" for="usluga_transport">Zlecam Transport</label>
+                        </div>
 
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -322,7 +335,9 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     </div>
                 </div>
             </div>
-    </form> <?php if(!empty($konfiguracja['note'])): ?>
+        </div> </form>
+
+    <?php if(!empty($konfiguracja['note'])): ?>
         <footer class="mt-5 pb-5">
             <div class="container border-top pt-4">
                 <p class="text-center text-muted fst-italic" style="font-size: 0.75rem; line-height: 1.4;">
@@ -334,8 +349,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             </div>
         </footer>
     <?php endif; ?>
-        </div>
-
+</div>
 
 <script>
     const config = <?php echo json_encode($konfiguracja); ?>;
@@ -387,20 +401,29 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         }
     }
 
+    function checkTaxStatus() {
+        const vat = document.getElementById('klient_vat');
+        const ryc = document.getElementById('klient_ryczalt');
+        const error = document.getElementById('tax-error');
+        if (vat.checked && ryc.checked) {
+            error.classList.remove('d-none');
+            return false;
+        } else {
+            error.classList.add('d-none');
+            calculateTotal(); // Odśwież payload
+            return true;
+        }
+    }
+
     function toggleAddressFields() {
         const checkbox = document.getElementById('chce_adres');
         const fields = document.getElementById('address-fields');
-
         if (checkbox.checked) {
             fields.classList.remove('d-none');
-            // Opcjonalnie: ustaw pola jako wymagane, gdy są widoczne
-            fields.querySelectorAll('input').forEach(input => input.required = true);
+            fields.querySelectorAll('input').forEach(i => i.required = true);
         } else {
             fields.classList.add('d-none');
-            fields.querySelectorAll('input').forEach(input => {
-                input.required = false;
-                input.value = ''; // Czyścimy przy odznaczeniu
-            });
+            fields.querySelectorAll('input').forEach(i => { i.required = false; i.value = ''; });
         }
     }
 
@@ -421,57 +444,42 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     window.selectCategory = function(id, element) {
         selectedCategory = id;
         selectedSilo = null;
-
         document.querySelectorAll('.category-tile').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
-
         const silos = data[id] || [];
         document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => `
             <tr style="cursor: pointer;" onclick="selectSilo(${i})">
-                <td class="text-center"><input type="radio" aria-label="Wybierz silos" name="silo_radio" id="silo_r_${i}" class="form-check-input" style="width:20px; height:20px;"></td>
-                <td>
-                    <div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div>
-                    <code class="text-muted small">Kod: ${s.kod}</code>
-                </td>
+                <td class="text-center"><input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input"></td>
+                <td><div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div><code class="text-muted small">Kod: ${s.kod}</code></td>
                 <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
             </tr>
         `).join('');
-
         toggleStep(2);
         calculateTotal();
     };
 
     window.selectSilo = function(index) {
         selectedSilo = data[selectedCategory][index];
-
         document.querySelectorAll('input[name="silo_radio"]').forEach(r => r.checked = false);
         document.getElementById('silo_r_' + index).checked = true;
-
         const tbody = document.getElementById('accessories-tbody');
         if(selectedSilo.akcesoria.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych dla tego modelu.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
         } else {
             tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => `
                 <tr class="bg-white">
-                    <td class="text-center">
-                        <input class="form-check-input acc-checkbox" aria-label="Wybierz akcesorium" type="checkbox" value="${i}" style="width:25px; height:25px; cursor:pointer;">
-                    </td>
-                    <td>
-                        <div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div>
-                        <code class="text-muted small">${a.kod}</code>
-                    </td>
-                    <td class="price-value fw-bold text-end text-nowrap">${formatPrice(a.cena)} zł</td>
+                    <td class="text-center"><input class="form-check-input acc-checkbox" type="checkbox" value="${i}" style="width:25px; height:25px;"></td>
+                    <td><div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div><code>${a.kod}</code></td>
+                    <td class="fw-bold text-end">${formatPrice(a.cena)} zł</td>
                 </tr>
              `).join('');
-
             document.querySelectorAll('.acc-checkbox').forEach(cb => cb.addEventListener('change', calculateTotal));
         }
-
         toggleStep(3);
         calculateTotal();
     };
 
-    ['silo-qty', 'usluga_montaz', 'usluga_transport'].forEach(id => {
+    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt'].forEach(id => {
         document.getElementById(id).addEventListener('change', calculateTotal);
         if(id === 'silo-qty') document.getElementById(id).addEventListener('input', calculateTotal);
     });
@@ -480,7 +488,6 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     function calculateTotal() {
         let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0;
-
         if (selectedSilo) {
             totalSiloPrice = selectedSilo.cena;
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
@@ -488,18 +495,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                 accsCount++;
             });
         }
-
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
-
         let multiplier = 1.0;
-        if(document.getElementById('usluga_montaz').checked) {
-            multiplier += (parseFloat(config.koszt_montazu) || 0);
-        }
-        if(document.getElementById('usluga_transport').checked) {
-            multiplier += (parseFloat(config.koszt_transportu) || 0);
-        }
-
+        if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
+        if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
         let finalTotal = baseCost * multiplier;
 
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
@@ -511,7 +511,9 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             silo: selectedSilo, akcesoria: [], qty: qty, baseCost: baseCost,
             montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
             transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
-            total: finalTotal
+            total: finalTotal,
+            isVat: document.getElementById('klient_vat').checked,
+            isRyczalt: document.getElementById('klient_ryczalt').checked
         };
         if (selectedSilo) {
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
@@ -523,7 +525,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     function validateForm() {
         if(!selectedSilo) {
-            alert("Proszę wybrać kategorię oraz model silosu przed przejściem do wyceny.");
+            alert("Proszę wybrać kategorię oraz model silosu.");
+            return false;
+        }
+        if (!checkTaxStatus()) {
+            alert("Proszę poprawić status podatkowy - nie można być jednocześnie płatnikiem VAT i ryczałtowcem.");
             return false;
         }
         return true;
@@ -531,6 +537,5 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     renderCategories();
 </script>
-
 </body>
 </html>

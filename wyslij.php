@@ -1,6 +1,7 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+
 $config = require 'config.php';
 require 'vendor/autoload.php';
 
@@ -12,6 +13,7 @@ use PHPMailer\PHPMailer\Exception;
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 1. POBIERANIE DANYCH
     $payload = json_decode($_POST['payload_json'], true);
+
     $klient = [
         'nazwa' => $_POST['klient_nazwa'] ?? '',
         'email' => $_POST['klient_email'] ?? '',
@@ -33,124 +35,144 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Błąd: Nie wybrano silosu.");
     }
 
+    // 1a. LOGIKA STATUSU PODATKOWEGO (Wykonana przed generowaniem HTML)
+    $statusy = [];
+    if (!empty($payload['isVat'])) $statusy[] = "Czynny podatnik VAT";
+    if (!empty($payload['isRyczalt'])) $statusy[] = "Rolnik ryczałtowy";
+    $status_text = !empty($statusy) ? implode(", ", $statusy) : "Nie określono";
+
     // 2. GENEROWANIE HTML DLA PDF
     $html = '
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #333; }
-        .header { background-color: #0b2239; color: white; padding: 30px; border-bottom: 4px solid #ced4da; text-align: center; }
-        .section-title { color: #0b2239; border-bottom: 2px solid #0b2239; margin-top: 20px; padding-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; line-height: 1.4; }
+        .header { background-color: #0b2239; color: white; padding: 25px; border-bottom: 4px solid #ced4da; text-align: center; }
+        .section-title { color: #0b2239; border-bottom: 2px solid #0b2239; margin-top: 20px; padding-bottom: 3px; text-transform: uppercase; font-weight: bold; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background-color: #f2f2f2; text-align: left; padding: 8px; border-bottom: 2px solid #0b2239; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
-        .total-box { margin-top: 30px; padding: 20px; background-color: #f8f9fa; border: 1px solid #0b2239; text-align: right; }
-        .footer { margin-top: 50px; font-size: 10px; color: #777; text-align: center; border-top: 1px solid #ccc; padding-top: 10px; }
+        .total-box { margin-top: 30px; padding: 15px; background-color: #f8f9fa; border: 1px solid #0b2239; text-align: right; }
+        .footer { margin-top: 40px; font-size: 9px; color: #777; text-align: center; border-top: 1px solid #ccc; padding-top: 10px; }
+        .address-box { background-color: #f1f3f5; padding: 10px; margin-top: 5px; border-left: 3px solid #0b2239; }
     </style>
 
     <div class="header">
-        <h1 style="margin:0;">ZAPYTANIE OFERTOWE - KONSIL</h1>
-        <p style="margin:5px 0 0 0;">Systemy Przechowywania Zbóż</p>
+        <h1 style="margin:0; font-size: 22px;">ZAPYTANIE OFERTOWE - KONSIL</h1>
+        <p style="margin:5px 0 0 0; opacity: 0.8;">Systemy Przechowywania Zbóż</p>
     </div>
 
     <div class="section-title">Dane Klienta</div>
     <p>
         <strong>Firma/Imię:</strong> ' . htmlspecialchars($klient['nazwa']) . '<br>
         <strong>Email:</strong> ' . htmlspecialchars($klient['email']) . ' | <strong>Tel:</strong> ' . htmlspecialchars($klient['tel']) . '<br>
-        ' . ($klient['nip'] ? '<strong>NIP:</strong> ' . htmlspecialchars($klient['nip']) : '') . '
-    </p>
+        ' . ($klient['nip'] ? '<strong>NIP:</strong> ' . htmlspecialchars($klient['nip']) . '<br>' : '') . '
+        <strong>Status podatkowy:</strong> ' . $status_text . '
+    </p>';
 
+    if ($adres['aktywny']) {
+        $html .= '
+        <div class="section-title">Lokalizacja montażu / dostawy</div>
+        <div class="address-box">
+            ' . htmlspecialchars($adres['ulica']) . ' ' . htmlspecialchars($adres['nr']) . ',<br>
+            ' . htmlspecialchars($adres['kod']) . ' ' . htmlspecialchars($adres['miejscowosc']) . '<br>
+            Poczta: ' . htmlspecialchars($adres['poczta']) . '
+        </div>';
+    }
+
+    $html .= '
     <div class="section-title">Wybrana Konfiguracja (' . $payload['qty'] . ' szt.)</div>
     <table>
         <thead>
             <tr>
-                <th>Element</th>
-                <th>Kod</th>
+                <th>Element zestawu</th>
+                <th>Kod produktu</th>
                 <th style="text-align: right;">Cena jedn. netto</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td><strong>Silos: ' . $payload['silo']['nazwa'] . '</strong></td>
-                <td>' . $payload['silo']['kod'] . '</td>
+                <td><strong>Silos: ' . htmlspecialchars($payload['silo']['nazwa']) . '</strong></td>
+                <td><code>' . htmlspecialchars($payload['silo']['kod']) . '</code></td>
                 <td style="text-align: right;">' . number_format($payload['silo']['cena'], 2, ',', ' ') . ' zł</td>
             </tr>';
 
-
-    if ($adres['aktywny']) {
-        $html .= '<div class="section-title">Adres do wyceny transportu</div>
-              <p>' . $adres['ulica'] . ' ' . $adres['nr'] . ', ' . $adres['kod'] . ' ' . $adres['miejscowosc'] . ' (Poczta: ' . $adres['poczta'] . ')</p>';
-    }
-
     foreach ($payload['akcesoria'] as $acc) {
-        $html .= '<tr>
-                    <td>' . $acc['nazwa'] . '</td>
-                    <td>' . $acc['kod'] . '</td>
-                    <td style="text-align: right;">' . number_format($acc['cena'], 2, ',', ' ') . ' zł</td>
-                  </tr>';
+        $html .= '
+            <tr>
+                <td>' . htmlspecialchars($acc['nazwa']) . '</td>
+                <td><code>' . htmlspecialchars($acc['kod']) . '</code></td>
+                <td style="text-align: right;">' . number_format($acc['cena'], 2, ',', ' ') . ' zł</td>
+            </tr>';
     }
 
-    $html .= '</tbody>
+    $html .= '
+        </tbody>
     </table>
 
-    <div class="section-title">Usługi dodatkowe</div>
+    <div class="section-title">Usługi dodatkowe (wliczone w sumę)</div>
     <p>
-        Transport: ' . ($payload['transport'] > 0 ? 'TAK' : 'NIE') . '<br>
-        Montaż: ' . ($payload['montaz'] > 0 ? 'TAK' : 'NIE') . '
+        <strong>Zlecenie transportu:</strong> ' . ($payload['transport'] > 0 ? 'TAK' : 'NIE') . '<br>
+        <strong>Zlecenie montażu:</strong> ' . ($payload['montaz'] > 0 ? 'TAK' : 'NIE') . '
     </p>
 
     <div class="total-box">
-        <span style="font-size: 14px; color: #777;">SZACUNKOWA WARTOŚĆ NETTO:</span><br>
-        <strong style="font-size: 24px; color: #0b2239;">' . number_format($payload['total'], 2, ',', ' ') . ' zł</strong>
+        <span style="font-size: 13px; color: #666; text-transform: uppercase;">Łączna wartość zapytania:</span><br>
+        <strong style="font-size: 22px; color: #0b2239;">' . number_format($payload['total'], 2, ',', ' ') . ' zł NETTO</strong>
     </div>
 
-    <div class="section-title">Uwagi klienta</div>
-    <p>' . nl2br(htmlspecialchars($klient['uwagi'] ?: 'Brak uwag.')) . '</p>
+    <div class="section-title">Uwagi dodatkowe</div>
+    <p>' . nl2br(htmlspecialchars($klient['uwagi'] ?: 'Brak dodatkowych uwag.')) . '</p>
 
     <div class="footer">
-        Dokument wygenerowany automatycznie przez konfigurator online Konsil. <br>
-        © 2026 P.O.R. KONSIL - Bydgoszcz
+        Dokument wygenerowany ' . date('d.m.Y H:i') . ' przez konfigurator online Konsil.<br>
+        © 2026 P.O.R. KONSIL - Bydgoszcz. Niniejszy dokument nie stanowi oferty w rozumieniu KC.
     </div>';
 
     // 3. GENEROWANIE PDF
-    $options = new Options();
-    $options->set('isRemoteEnabled', true); // Dla obrazków
-    $options->set('isHtml5ParserEnabled', true);
+    try {
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('tempDir', __DIR__ . '/temp');
+        $options->set('fontDir', __DIR__ . '/temp');
+        $options->set('fontCache', __DIR__ . '/temp');
 
-    $options->set('tempDir', __DIR__ . '/temp');
-    $options->set('fontDir', __DIR__ . '/temp'); // Dompdf będzie tu trzymać cache czcionek
-    $options->set('fontCache', __DIR__ . '/temp');
-
-    $dompdf = new Dompdf($options);
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-    $pdfOutput = $dompdf->output();
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $pdfOutput = $dompdf->output();
+    } catch (\Exception $e) {
+        die("Błąd generowania PDF: " . $e->getMessage());
+    }
 
     // 4. WYSYŁKA MAILA (PHPMailer)
     $mail = new PHPMailer(true);
     try {
-        // Tu wpisz swoje dane SMTP (np. z XAMPP / Mailtrap / Gmail)
         $mail->isSMTP();
         $mail->Host       = $config['smtp_host'];
         $mail->SMTPAuth   = true;
-        $mail->SMTPDebug = $config['debug'] ? 2 : 0; // Sam włącza debugowanie tylko lokalnie!
         $mail->Username   = $config['smtp_user'];
         $mail->Password   = $config['smtp_pass'];
         $mail->SMTPSecure = $config['smtp_secure'];
         $mail->Port       = $config['smtp_port'];
         $mail->CharSet    = 'UTF-8';
 
-        $mail->setFrom('konsil@interia.pl', 'Konfigurator Konsil');
+        // Debugowanie tylko jeśli ustawione w configu
+        $mail->SMTPDebug = (!empty($config['debug'])) ? 2 : 0;
+
+        $mail->setFrom($config['email_from'], 'Konfigurator Konsil');
         $mail->addAddress($config['email_to']);
         $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
         $mail->isHTML(true);
-        $mail->Subject = 'Nowe zapytanie ofertowe: ' . $payload['silo']['nazwa'];
-        $mail->Body    = 'W załączniku znajduje się oferta przygotowana przez klienta: ' . $klient['nazwa'];
+        $mail->Subject = 'Zapytanie ofertowe: ' . $payload['silo']['nazwa'] . ' - ' . $klient['nazwa'];
+        $mail->Body    = "Pojawiło się nowe zapytanie ofertowe wygenerowane przez system online.<br><br>
+                          <b>Klient:</b> {$klient['nazwa']}<br>
+                          <b>Wartość:</b> " . number_format($payload['total'], 2, ',', ' ') . " zł netto<br><br>
+                          Szczegóły znajdują się w załączonym pliku PDF.";
 
-        // ZAŁĄCZNIK PDF
-        $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_His') . '.pdf');
+        $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
 
-        //$mail->SMTPDebug = 2; [DEPRECATED]
         $mail->send();
 
         // 5. KOMUNIKAT DLA UŻYTKOWNIKA
@@ -159,19 +181,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <html lang="pl">
         <head>
             <meta charset="UTF-8">
+            <title>Wysłano zapytanie</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
             <style>
                 body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-                .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+                .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; border-radius: 0; text-align: center; max-width: 600px; }
             </style>
         </head>
         <body>
-            <div class="success-card shadow">
-                <i class="bi bi-check2-circle text-success" style="font-size: 4rem;"></i>
-                <h1 class="mt-4" style="color: #0b2239;">WYSŁANO!</h1>
-                <p class="lead text-muted">Twoje zapytanie ofertowe zostało przesłane do naszych doradców.<br>Czekaj na odpowiedź, skontaktujemy się z Tobą niebawem.</p>
-                <hr>
-                <a href="index.php" class="btn btn-outline-dark px-4 mt-3">Wróć do konfiguratora</a>
+            <div class="success-card shadow-lg">
+                <i class="bi bi-check2-circle text-success" style="font-size: 5rem;"></i>
+                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">DZIĘKUJEMY!</h1>
+                <p class="lead text-muted">Twoje zapytanie dotyczące silosu <strong>' . htmlspecialchars($payload['silo']['nazwa']) . '</strong> zostało pomyślnie wysłane.</p>
+                <p class="text-muted">Nasi doradcy skontaktują się z Tobą pod adresem: <br><strong>' . htmlspecialchars($klient['email']) . '</strong></p>
+                <hr class="my-4">
+                <a href="index.php" class="btn btn-dark btn-lg px-5" style="border-radius:0; background-color: #0b2239;">Wróć do konfiguratora</a>
             </div>
         </body>
         </html>';
