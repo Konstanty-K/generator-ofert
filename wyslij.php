@@ -40,6 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($payload['isVat'])) $statusy[] = "Czynny podatnik VAT";
     if (!empty($payload['isRyczalt'])) $statusy[] = "Rolnik ryczałtowy";
     $status_text = !empty($statusy) ? implode(", ", $statusy) : "Nie określono";
+    $skad = !empty($payload['skadInfo']) ? htmlspecialchars($payload['skadInfo']) : "Nie podano";
 
     // 2. GENEROWANIE HTML DLA PDF
     $html = '
@@ -65,7 +66,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <strong>Firma/Imię:</strong> ' . htmlspecialchars($klient['nazwa']) . '<br>
         <strong>Email:</strong> ' . htmlspecialchars($klient['email']) . ' | <strong>Tel:</strong> ' . htmlspecialchars($klient['tel']) . '<br>
         ' . ($klient['nip'] ? '<strong>NIP:</strong> ' . htmlspecialchars($klient['nip']) . '<br>' : '') . '
-        <strong>Status podatkowy:</strong> ' . $status_text . '
+        <strong>Status podatkowy:</strong> ' . $status_text . '<br>
+        <strong>Źródło kontaktu:</strong> ' . $skad . '
     </p>';
 
     if ($adres['aktywny']) {

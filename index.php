@@ -236,6 +236,20 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
                         <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
 
+                        <div class="col-12">
+                            <label class="small text-muted mb-1">Skąd dowiedziałeś się o firmie KONSIL?</label>
+                            <select name="skad_info" id="skad_info" class="form-select" style="border-radius:0;">
+                                <option value="" selected>-- Wybierz opcję (opcjonalnie) --</option>
+                                <option value="Internet (Google/Strona www)">Internet (Google/Strona www)</option>
+                                <option value="Social Media (Facebook)">Social Media (Facebook)</option>
+                                <option value="Polecenie od innego rolnika">Polecenie od innego rolnika</option>
+                                <option value="Targi rolnicze">Targi rolnicze</option>
+                                <option value="Prasa rolnicza / Radio">Prasa rolnicza / Radio</option>
+                                <option value="Widziałem silosy u sąsiada">Widziałem silosy u sąsiada</option>
+                                <option value="Inne">Inne</option>
+                            </select>
+                        </div>
+
                         <div class="col-12 mt-2">
                             <div class="row">
                                 <div class="col-md-6">
@@ -519,7 +533,8 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             total: finalTotal,
             totalGross: finalTotal * 1.23,
             isVat: document.getElementById('klient_vat').checked,
-            isRyczalt: document.getElementById('klient_ryczalt').checked
+            isRyczalt: document.getElementById('klient_ryczalt').checked,
+            skadInfo: document.getElementById('skad_info').value
         };
         if (selectedSilo) {
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
