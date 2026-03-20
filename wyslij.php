@@ -3,12 +3,15 @@
  * Realizacja: inż. arch. Konstanty Kaszubski
  * Data: Marzec 2026
  * Projekt: Konfigurator Konsil
+ * Wersja: 1.3.5 (...)
  */
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 $config = require 'config.php';
 require 'vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -16,31 +19,41 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
     // 1. POBIERANIE DANYCH
     $payload = json_decode($_POST['payload_json'], true);
 
     $klient = [
-        'nazwa' => $_POST['klient_nazwa'] ?? '',
-        'email' => $_POST['klient_email'] ?? '',
-        'nip'   => $_POST['klient_nip'] ?? '',
-        'tel'   => $_POST['klient_telefon'] ?? '',
-        'uwagi' => $_POST['uwagi'] ?? ''
+            'nazwa' => $_POST['klient_nazwa'] ?? '',
+            'email' => $_POST['klient_email'] ?? '',
+            'nip'   => $_POST['klient_nip'] ?? '',
+            'tel'   => $_POST['klient_telefon'] ?? '',
+            'uwagi' => $_POST['uwagi'] ?? ''
     ];
 
     $adres = [
-        'aktywny' => isset($_POST['chce_adres']),
-        'miejscowosc' => $_POST['adr_miejscowosc'] ?? '',
-        'kod' => $_POST['adr_kod'] ?? '',
-        'ulica' => $_POST['adr_ulica'] ?? '',
-        'nr' => $_POST['adr_nr'] ?? '',
-        'poczta' => $_POST['adr_poczta'] ?? ''
+            'aktywny' => isset($_POST['chce_adres']),
+            'miejscowosc' => $_POST['adr_miejscowosc'] ?? '',
+            'kod' => $_POST['adr_kod'] ?? '',
+            'ulica' => $_POST['adr_ulica'] ?? '',
+            'nr' => $_POST['adr_nr'] ?? '',
+            'poczta' => $_POST['adr_poczta'] ?? ''
     ];
 
     if (!$payload || !$payload['silo']) {
         die("Błąd: Nie wybrano silosu.");
     }
 
-    // 1a. LOGIKA STATUSU PODATKOWEGO (Wykonana przed generowaniem HTML)
+    // 1b. PRZYGOTOWANIE LOGO DO PDF (Base64)
+    $logoPath = __DIR__ . '/konsil_logo_main.png';
+    $logoBase64 = '';
+    if (file_exists($logoPath)) {
+        $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+        $data = file_get_contents($logoPath);
+        $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+    }
+
+    // 1c. LOGIKA STATUSU PODATKOWEGO I ANKIETY
     $statusy = [];
     if (!empty($payload['isVat'])) $statusy[] = "Czynny podatnik VAT";
     if (!empty($payload['isRyczalt'])) $statusy[] = "Rolnik ryczałtowy";
@@ -51,7 +64,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $html = '
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; line-height: 1.4; }
-        .header { background-color: #0b2239; color: white; padding: 25px; border-bottom: 4px solid #ced4da; text-align: center; }
+        .header { background-color: #0b2239; color: white; padding: 20px; border-bottom: 4px solid #ced4da; text-align: center; }
+        .logo-pdf { max-height: 60px; margin-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+        .header p { margin: 5px 0 0 0; font-size: 10px; opacity: 0.8; text-transform: uppercase; }
         .section-title { color: #0b2239; border-bottom: 2px solid #0b2239; margin-top: 20px; padding-bottom: 3px; text-transform: uppercase; font-weight: bold; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background-color: #f2f2f2; text-align: left; padding: 8px; border-bottom: 2px solid #0b2239; }
@@ -61,9 +77,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .address-box { background-color: #f1f3f5; padding: 10px; margin-top: 5px; border-left: 3px solid #0b2239; }
     </style>
 
-    <div class="header">
-        <h1 style="margin:0; font-size: 22px;">ZAPYTANIE OFERTOWE - KONSIL</h1>
-        <p style="margin:5px 0 0 0; opacity: 0.8;">Systemy Przechowywania Zbóż</p>
+    <div class="header">';
+
+    if ($logoBase64) {
+        $html .= '<img src="' . $logoBase64 . '" class="logo-pdf"><br>';
+    }
+
+    $html .= '
+        <h1>ZAPYTANIE OFERTOWE</h1>
+        <p>Przedsiębiorstwo Obsługi Rolnictwa KONSIL</p>
     </div>
 
     <div class="section-title">Dane Klienta</div>
@@ -139,10 +161,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
-        $options->set('tempDir', __DIR__ . '/temp');
-        $options->set('fontDir', __DIR__ . '/temp');
-        $options->set('fontCache', __DIR__ . '/temp');
-
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
@@ -163,22 +181,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->SMTPSecure = $config['smtp_secure'];
         $mail->Port       = $config['smtp_port'];
         $mail->CharSet    = 'UTF-8';
-
-        // Debugowanie tylko jeśli ustawione w configu
-        $mail->SMTPDebug = (!empty($config['debug'])) ? 2 : 0;
-
         $mail->isHTML(true);
 
         $firmMailSent = false;
         $clientMailSent = false;
 
+        // --- MAIL 1: DO FIRMY ---
         try {
             $mail->setFrom($config['email_from'], 'Konfigurator Konsil');
             $mail->addAddress($config['email_to']);
             $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
-
-            // --- mail do Firmy ---
             $mail->Subject = 'Zapytanie ofertowe: ' . $payload['silo']['nazwa'] . ' - ' . $klient['nazwa'];
             $mail->Body = "Pojawiło się nowe zapytanie ofertowe.<br><br>
                           <b>Klient:</b> {$klient['nazwa']}<br>
@@ -188,56 +201,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
 
             $mail->send();
+            $firmMailSent = true; // WAŻNE: Aktywujemy status wysyłki
         } catch (\Exception $e) {
-            // Jeśli nie wyszło do firmy, to mamy poważny problem z serwerem
-            die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Błąd: {$mail->ErrorInfo}");        }
+            die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Błąd: {$mail->ErrorInfo}");
+        }
 
-        // --- mail 2: DO KLIENTA (ROLNIKA) ---
+        // --- MAIL 2: DO KLIENTA (ROLNIKA) ---
         if ($firmMailSent) {
             try {
-                $mail->clearAddresses(); // CZYŚCIMY ADRES FIRMY, żeby nie wysłać do nich ponownie
-                // Sprawdzamy czy adres ma sens przed dodaniem
+                $mail->clearAddresses();
                 if (filter_var($klient['email'], FILTER_VALIDATE_EMAIL)) {
-                    $mail->addAddress($klient['email']); // DODAJEMY ADRES KLIENTA
-
+                    $mail->addAddress($klient['email']);
                     $mail->Subject = 'Podsumowanie Twojej konfiguracji silosu - Konsil';
                     $mail->Body = "
-        <div style='font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px;'>
-            <h2 style='color: #0b2239;'>Dzień dobry!</h2>
-            <p>Dziękujemy za skorzystanie z konfiguratora ofert online na stronie 
-               <a href='https://www.konsil.pl' style='color: #0b2239; font-weight: bold; text-decoration: none;'>www.konsil.pl</a>.
-            </p>
-            <p>Otrzymaliśmy Twoje zapytanie dotyczące modelu: <b>" . htmlspecialchars($payload['silo']['nazwa']) . "</b>.</p>
-            <p>Nasi doradcy przeanalizują Twoją konfigurację i skontaktują się z Tobą, aby przedstawić finalną ofertę.</p>
-            
-            <div style='background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0b2239; margin: 20px 0;'>
-                <p style='margin: 0; font-weight: bold; color: #0b2239;'>Masz pytania? Zadzwoń do nas:</p>
-                <p style='margin: 10px 0 0 0; font-size: 1.2rem;'>
-                    <a href='tel:+48523857859' style='color: #d9534f; text-decoration: none; font-weight: bold;'>52 385-78-59</a>
-                </p>
-            </div>
+                    <div style='font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px;'>
+                        <h2 style='color: #0b2239;'>Dzień dobry!</h2>
+                        <p>Dziękujemy za skorzystanie z konfiguratora ofert online na stronie 
+                           <a href='https://www.konsil.pl' style='color: #0b2239; font-weight: bold; text-decoration: none;'>www.konsil.pl</a>.
+                        </p>
+                        <p>Otrzymaliśmy Twoje zapytanie dotyczące modelu: <b>" . htmlspecialchars($payload['silo']['nazwa']) . "</b>.</p>
+                        <p>Nasi doradcy przeanalizują Twoją konfigurację i skontaktują się z Tobą wkrótce.</p>
+                        <div style='background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0b2239; margin: 20px 0;'>
+                            <p style='margin: 0; font-weight: bold; color: #0b2239;'>Masz pytania? Zadzwoń do nas:</p>
+                            <p style='margin: 10px 0 0 0; font-size: 1.2rem;'>
+                                <a href='tel:+48523857859' style='color: #d9534f; text-decoration: none; font-weight: bold;'>52 385-78-59</a>
+                            </p>
+                        </div>
+                        <p>Szczegółowe podsumowanie znajdziesz w <b>załączonym pliku PDF</b>.</p>
+                        <hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'>
+                        <p style='font-size: 0.9rem; color: #777;'>
+                            Z poważaniem,<br>
+                            <strong>Zespół P.O.R. KONSIL</strong><br>
+                            ul. Nakielska, Ślesin<br>
+                            <a href='https://www.konsil.pl' style='color: #777;'>www.konsil.pl</a>
+                        </p>
+                    </div>";
 
-            <p>Szczegółowe podsumowanie Twojej konfiguracji znajdziesz w <b>załączonym pliku PDF</b>.</p>
-            
-            <hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'>
-            <p style='font-size: 0.9rem; color: #777;'>
-                Z poważaniem,<br>
-                <strong>Zespół P.O.R. KONSIL</strong><br>
-                ul. Nakielska ,XX-XXX Ślesin<br>
-                <a href='https://www.konsil.pl' style='color: #777;'>www.konsil.pl</a>
-            </p>
-        </div>";
-
-                    $mail->send(); // Wysyłamy drugi mail
+                    $mail->send();
                     $clientMailSent = true;
                 }
             } catch (\Exception $e) {
-                // Tutaj nie przerywamy skryptu (die), bo firma już dostała maila!
                 $clientMailSent = false;
             }
         }
 
-        // --- KROK 5: KOMUNIKAT DLA UŻYTKOWNIKA (DYNAMICZNY) ---
+        // --- KROK 5: WIDOK SUKCESU ---
         ?>
         <!DOCTYPE html>
         <html lang="pl">
@@ -247,47 +255,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
             <style>
-                body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-                .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; border-radius: 0; text-align: center; max-width: 600px; }
-                .btn-konsil { background-color: #0b2239; color: white; border-radius: 0; padding: 12px 30px; font-weight: bold; text-transform: uppercase; }
-                .btn-konsil:hover { background-color: #162e4a; color: white; }
+                body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; }
+                .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; text-align: center; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
             </style>
         </head>
         <body>
-        <div class="success-card shadow-lg">
-
+        <div class="success-card">
             <?php if ($clientMailSent): ?>
                 <i class="bi bi-check2-circle text-success" style="font-size: 5rem;"></i>
                 <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">WYSŁANO!</h1>
-                <p class="lead text-muted">
-                    Zapytanie dotyczące silosu <strong><?php echo htmlspecialchars($payload['silo']['nazwa']); ?></strong> trafiło do naszych doradców.
-                </p>
-                <p class="text-muted">Kopię konfiguracji wysłaliśmy na Twój e-mail: <br><strong><?php echo htmlspecialchars($klient['email']); ?></strong></p>
-
+                <p class="lead text-muted">Zapytanie trafiło do naszych doradców. Kopię wysłaliśmy na Twój e-mail.</p>
             <?php else: ?>
                 <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
                 <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">PRZYJĘTO ZAPYTANIE</h1>
-                <p class="lead text-muted">
-                    Twoja wycena została zapisana w naszym systemie. Doradca skontaktuje się z Tobą telefonicznie.
-                </p>
-                <div class="alert alert-warning border-0 rounded-0 small text-start">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Uwaga:</strong> Nie mogliśmy dostarczyć kopii na adres: <u><?php echo htmlspecialchars($klient['email']); ?></u>.
-                    Prawdopodobnie zawiera on literówkę lub Twoja skrzynka odrzuciła wiadomość.
+                <p class="lead text-muted">Twoja wycena została zapisana. Skontaktujemy się telefonicznie.</p>
+                <div class="alert alert-warning small text-start">
+                    Błąd dostarczenia kopii na adres: <?php echo htmlspecialchars($klient['email']); ?>. Sprawdź poprawność maila.
                 </div>
             <?php endif; ?>
-
             <hr class="my-4">
-            <a href="index.php" class="btn btn-konsil btn-lg px-5 shadow-sm">Wróć do konfiguratora</a>
+            <a href="index.php" class="btn btn-dark btn-lg px-5" style="background-color: #0b2239; border-radius: 0;">Powrót</a>
         </div>
         </body>
         </html>
         <?php
 
     } catch (Exception $e) {
-        // Ten blok wyłapie tylko błędy krytyczne (np. awaria serwera pocztowego firmy)
-        echo "<h3>Wystąpił błąd krytyczny serwera pocztowego:</h3>";
-        echo "<p>{$mail->ErrorInfo}</p>";
-        echo "<a href='index.php'>Wróć i spróbuj ponownie</a>";
+        die("Błąd krytyczny PHPMailer: {$mail->ErrorInfo}");
     }
 }
