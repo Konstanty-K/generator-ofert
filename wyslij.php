@@ -20,6 +20,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'uwagi' => $_POST['uwagi'] ?? ''
     ];
 
+    $adres = [
+        'aktywny' => isset($_POST['chce_adres']),
+        'miejscowosc' => $_POST['adr_miejscowosc'] ?? '',
+        'kod' => $_POST['adr_kod'] ?? '',
+        'ulica' => $_POST['adr_ulica'] ?? '',
+        'nr' => $_POST['adr_nr'] ?? '',
+        'poczta' => $_POST['adr_poczta'] ?? ''
+    ];
+
     if (!$payload || !$payload['silo']) {
         die("Błąd: Nie wybrano silosu.");
     }
@@ -64,6 +73,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <td>' . $payload['silo']['kod'] . '</td>
                 <td style="text-align: right;">' . number_format($payload['silo']['cena'], 2, ',', ' ') . ' zł</td>
             </tr>';
+
+
+    if ($adres['aktywny']) {
+        $html .= '<div class="section-title">Adres do wyceny transportu</div>
+              <p>' . $adres['ulica'] . ' ' . $adres['nr'] . ', ' . $adres['kod'] . ' ' . $adres['miejscowosc'] . ' (Poczta: ' . $adres['poczta'] . ')</p>';
+    }
 
     foreach ($payload['akcesoria'] as $acc) {
         $html .= '<tr>
@@ -117,6 +132,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->isSMTP();
         $mail->Host       = $config['smtp_host'];
         $mail->SMTPAuth   = true;
+        $mail->SMTPDebug = $config['debug'] ? 2 : 0; // Sam włącza debugowanie tylko lokalnie!
         $mail->Username   = $config['smtp_user'];
         $mail->Password   = $config['smtp_pass'];
         $mail->SMTPSecure = $config['smtp_secure'];
@@ -124,7 +140,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom('konsil@interia.pl', 'Konfigurator Konsil');
-        $mail->addAddress('silosy@konsil.pl'); // Adres firmy
+        $mail->addAddress($config['email_to']);
         $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
         $mail->isHTML(true);
@@ -134,7 +150,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // ZAŁĄCZNIK PDF
         $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_His') . '.pdf');
 
-        $mail->SMTPDebug = 2;
+        //$mail->SMTPDebug = 2; [DEPRECATED]
         $mail->send();
 
         // 5. KOMUNIKAT DLA UŻYTKOWNIKA

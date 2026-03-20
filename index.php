@@ -237,7 +237,38 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <div class="col-md-6"><input type="email" name="klient_email" aria-label="Adres E-mail" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required></div>
                         <div class="col-md-6"><input type="text" name="klient_nip" aria-label="NIP" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
                         <div class="col-md-6"><input type="tel" name="klient_telefon" aria-label="Numer telefonu" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
-                        <div class="col-12"><textarea name="uwagi" aria-label="Dodatkowe uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty lub lokalizacja montażu..." style="border-radius:0;"></textarea></div>
+                        <div class="col-12"><textarea name="uwagi" aria-label="Dodatkowe uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+
+                        <div class="col-12">
+                            <hr class="my-4">
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" value="1" id="zgoda_rodo" name="zgoda_rodo" required>
+                                <label class="form-check-label small text-muted" for="zgoda_rodo">
+                                    Oświadczam, że zapoznałem się z klauzulą informacyjną RODO i wyrażam zgodę na przetwarzanie moich danych w celu przygotowania oferty. [Wymagane]
+                                </label>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" value="1" id="chce_adres" name="chce_adres" onchange="toggleAddressFields()">
+                                <label class="form-check-label fw-bold" for="chce_adres" style="color: var(--main-navy);">
+                                    Chcę otrzymać szczegółową wycenę transportu i montażu na podany adres
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="address-fields" class="col-12 d-none">
+                            <div class="card card-body bg-light border-0 rounded-0 p-4">
+                                <h6 class="fw-bold mb-3 text-uppercase small" style="color: var(--main-navy);">Adres dostawy i montażu:</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-8"><input type="text" name="adr_miejscowosc" class="form-control" placeholder="Miejscowość"></div>
+                                    <div class="col-md-4"><input type="text" name="adr_kod" class="form-control" placeholder="Kod pocztowy"></div>
+                                    <div class="col-md-6"><input type="text" name="adr_ulica" class="form-control" placeholder="Ulica"></div>
+                                    <div class="col-md-2"><input type="text" name="adr_nr" class="form-control" placeholder="Nr domu"></div>
+                                    <div class="col-md-4"><input type="text" name="adr_poczta" class="form-control" placeholder="Poczta"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -353,6 +384,23 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         } else {
             content3.classList.add('d-none');
             setIcon('step3-icon', selectedSilo ? 'done' : 'pending');
+        }
+    }
+
+    function toggleAddressFields() {
+        const checkbox = document.getElementById('chce_adres');
+        const fields = document.getElementById('address-fields');
+
+        if (checkbox.checked) {
+            fields.classList.remove('d-none');
+            // Opcjonalnie: ustaw pola jako wymagane, gdy są widoczne
+            fields.querySelectorAll('input').forEach(input => input.required = true);
+        } else {
+            fields.classList.add('d-none');
+            fields.querySelectorAll('input').forEach(input => {
+                input.required = false;
+                input.value = ''; // Czyścimy przy odznaczeniu
+            });
         }
     }
 
