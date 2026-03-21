@@ -11,7 +11,12 @@ error_reporting(E_ALL);
 
 $config = require 'config.php';
 require 'vendor/autoload.php';
-require_once __DIR__ . '/vendor/autoload.php';
+if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
+    die("BŁĄD: Nie znaleziono pliku autoload.php w " . __DIR__ . "/vendor/");
+} else {
+    echo "Autoloader załadowany poprawnie.";
+}
+//require_once __DIR__ . '/vendor/autoload.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -157,14 +162,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>';
 
     // 3. GENEROWANIE PDF
+    // 3. GENEROWANIE PDF
     try {
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
+
+        // Definiujemy ścieżkę do folderu temp w sposób bezwzględny
+        $tmpDir = __DIR__ . '/temp';
+
+        // Jeśli folder nie istnieje, spróbujmy go stworzyć
+        if (!file_exists($tmpDir)) {
+            mkdir($tmpDir, 0777, true);
+        }
+
+        // Ustawiamy ścieżki dla czcionek i plików tymczasowych
+        $options->set('tempDir', $tmpDir);
+        $options->set('fontDir', $tmpDir);
+        $options->set('fontCache', $tmpDir);
+        $options->set('chroot', __DIR__); // Zabezpieczenie ścieżek
+
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+
         $pdfOutput = $dompdf->output();
     } catch (\Exception $e) {
         die("Błąd generowania PDF: " . $e->getMessage());
