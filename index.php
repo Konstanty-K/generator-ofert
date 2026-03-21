@@ -2,235 +2,607 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="author" content="inż. arch. Konstanty Kaszubski">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silosy Konsil - Oferta Handlowa</title>
+    <title>Silosy Konsil - Konfigurator Oferty</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        /* NOWA KOLORYSTYKA NAVY BLUE */
         :root {
-            --main-dark: #0b2239; /* Twój wybrany kolor */
-            --accent-red: #e30613;
+            --main-navy: #0b2239;
+            --accent-soft: #ced4da;
             --bg-light: #f4f7f6;
         }
 
         body {
             background-color: var(--bg-light);
-            font-family: 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             color: #333;
         }
 
-        /* NAGŁÓWEK Z LOGO */
         .konsil-header {
-            background-color: var(--main-dark);
+            background-color: var(--main-navy);
             color: white;
-            padding: 20px 0;
-            border-bottom: 5px solid var(--accent-red);
-            margin-bottom: 40px;
+            padding: 30px 0;
+            border-bottom: 3px solid var(--accent-soft);
         }
-        .header-logo {
-            max-height: 70px; /* Dopasuj wysokość logo */
-            width: auto;
-        }
+        .header-logo { max-height: 100px; width: auto; margin-bottom: 10px; }
+        .header-subtext { font-size: 0.75rem; font-weight: 600; letter-spacing: 1.5px; margin: 0; }
+        .icon-gray { color: var(--accent-soft) !important; margin-right: 8px; }
 
-        /* TABELA I STYLIZACJA */
-        .table-dark { background-color: var(--main-dark) !important; border: none; }
-        .table thead th {
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            padding: 15px;
-        }
-        .product-row { background-color: white; transition: 0.2s; }
-        .product-row:hover { background-color: #f8f9fa; }
-
-        .price-value { font-weight: 700; color: var(--main-dark); }
-        .qty-input {
-            border: 2px solid #ddd;
-            font-weight: bold;
-            text-align: center;
+        .category-tile {
+            border: 2px solid transparent;
             border-radius: 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            min-height: 250px;
         }
-        .qty-input:focus { border-color: var(--main-dark); box-shadow: none; }
-
-        /* PŁYWAJĄCE PODSUMOWANIE */
-        .sticky-bottom-custom {
-            position: sticky;
-            bottom: 15px;
-            background-color: white;
-            border: 2px solid var(--main-dark);
-            border-left: 10px solid var(--main-dark);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            z-index: 1020;
-            padding: 20px;
-            margin-bottom: 30px;
+        .category-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important; }
+        .category-tile.active { border-color: var(--main-navy); background-color: white; }
+        .category-img {
+            height: 180px;
+            width: 100%;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        /* Styl dla zablokowanej kategorii */
+        .category-tile.disabled {
+            opacity: 0.7;
+            filter: grayscale(80%); /* Lekkie wyszarzenie obrazka */
+            cursor: not-allowed;
+            position: relative;
+            pointer-events: none; /* Całkowicie blokuje kliknięcia w JS */
         }
 
-        /* PRZYCISKI */
+        /* Nakładka "Wkrótce" */
+        .coming-soon-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            background-color: var(--main-navy);
+            color: white;
+            padding: 5px 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            z-index: 5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
+
+        .section-title { color: var(--main-navy); border-left: 5px solid var(--main-navy); padding-left: 15px; font-weight: bold; }
+        .table-dark { background-color: var(--main-navy) !important; border: none; }
         .btn-konsil {
-            background-color: var(--main-dark);
-            color: white;
-            border: none;
-            border-radius: 0;
-            padding: 15px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
+            background-color: var(--main-navy); color: white; border-radius: 0;
+            padding: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
         }
-        .btn-konsil:hover { background-color: #1a3a5a; color: white; transform: translateY(-2px); }
+        .btn-konsil:hover { background-color: #162e4a; color: white; transform: translateY(-2px); }
 
-        #searchInput {
-            border-radius: 0;
-            border: 2px solid #ddd;
-            padding: 15px;
-        }
-        #searchInput:focus { border-color: var(--main-dark); box-shadow: none; }
+        .sidebar-summary { position: sticky; top: 20px; z-index: 1000; }
+        .form-switch .form-check-input:checked { background-color: var(--main-navy); border-color: var(--main-navy); }
+
+        .step-icon { font-size: 1.5rem; color: var(--main-navy); transition: 0.3s; }
+        .card-header:hover { background-color: #f8f9fa !important; }
     </style>
 </head>
 <body>
 
-<header class="konsil-header shadow">
+<?php
+// 1. DANE MASTER
+$cenyMaster = [];
+if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
+    fgetcsv($handle);
+    while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
+        if(count($data) > 39) {
+            $kod = trim($data[0]);
+            $nazwa = trim($data[1]);
+            $cena = (float)str_replace(',', '.', trim($data[39]));
+            $cenyMaster[$kod] = ['nazwa' => $nazwa, 'cena' => $cena];
+        }
+    }
+    fclose($handle);
+}
+
+// 2. KATEGORIE
+$categories_config = [
+        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'WYCENA- ONLINE - silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
+        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png'],
+        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
+];
+
+$categories_data = [];
+foreach ($categories_config as $cat) {
+    $silos = [];
+    if (file_exists($cat['file']) && ($handle = @fopen($cat['file'], "r")) !== FALSE) {
+        $model_row_found = false;
+        while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
+            $first_col = trim(strtoupper($data[0] ?? ''));
+            if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') { $model_row_found = true; continue; }
+
+            if ($model_row_found && $first_col !== '' && $first_col !== 'NAN') {
+                $silo_code = trim($data[0]);
+                $accs = [];
+                for ($i = 1; $i < count($data); $i++) {
+                    $val = trim($data[$i] ?? '');
+                    if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
+                        $parts = explode(',', $val);
+                        foreach ($parts as $part) {
+                            $p = trim($part);
+                            if($p) $accs[] = $p;
+                        }
+                    }
+                }
+
+                $silo_master = $cenyMaster[$silo_code] ?? ['nazwa' => $silo_code, 'cena' => 0];
+                $accs_detailed = [];
+                foreach ($accs as $ac) {
+                    $ac_master = $cenyMaster[$ac] ?? ['nazwa' => $ac, 'cena' => 0];
+                    $accs_detailed[] = ['kod' => $ac, 'nazwa' => $ac_master['nazwa'], 'cena' => $ac_master['cena']];
+                }
+
+                $silos[] = [
+                        'kod' => $silo_code, 'nazwa' => $silo_master['nazwa'],
+                        'cena' => $silo_master['cena'], 'akcesoria' => $accs_detailed
+                ];
+            }
+        }
+        fclose($handle);
+    }
+    $categories_data[$cat['id']] = $silos;
+}
+
+// 3. KONFIGURACJA
+$konfiguracja = ['koszt_transportu' => 0, 'koszt_montazu' => 0, 'termin' => '', 'note' => ''];
+if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r")) !== FALSE) {
+    while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+        if(count($data) >= 2) {
+            $klucz = trim($data[0]);
+            $wartosc = trim($data[1]);
+            if (in_array($klucz, ['termin', 'note'])) {
+                $konfiguracja[$klucz] = $wartosc;
+            } else {
+                $konfiguracja[$klucz] = (float)str_replace(',', '.', $wartosc);
+            }
+        }
+    }
+    fclose($handle);
+}
+?>
+
+<header class="konsil-header shadow-sm">
     <div class="container d-flex justify-content-between align-items-center">
-        <div>
+        <div class="d-flex flex-column align-items-center text-center">
             <img src="konsil_logo_main.png" alt="Konsil Logo" class="header-logo">
+            <p class="header-subtext">PRZEDSIĘBIORSTWO OBSŁUGI ROLNICTWA "KONSIL"</p>
         </div>
         <div class="text-end d-none d-md-block">
-            <div class="fw-bold">📞 52 385-78-59</div>
-            <div class="small opacity-75">📧 silosy@konsil.pl</div>
+            <div class="mb-1"><i class="bi bi-telephone-fill icon-gray"></i><span class="fw-bold">52 385-78-59</span></div>
+            <div><i class="bi bi-envelope icon-gray"></i><span class="opacity-75">silosy@konsil.pl</span></div>
         </div>
     </div>
 </header>
 
-<div class="container pb-5">
-    <div class="mb-4">
-        <label class="form-label fw-bold text-muted small">WYSZUKAJ PRODUKT:</label>
-        <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm"
-               placeholder="Wyszukaj silos lub wyposażenie...">
-    </div>
+<div class="container pb-5 mt-4">
+    <form action="wyslij.php" method="POST" id="mainForm" onsubmit="return validateForm()">
+        <input type="hidden" name="payload_json" id="hidden-payload">
 
-    <form action="wyslij.php" method="POST">
-        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 0;">
-            <div class="table-responsive">
-                <table class="table align-middle" id="productTable">
-                    <thead class="table-dark">
-                    <tr>
-                        <th style="width: 80px;">Foto</th>
-                        <th>Produkt i Kod</th>
-                        <th class="text-end">Cena netto</th>
-                        <th>Opis</th>
-                        <th style="width: 120px;">Ilość</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    $file = fopen("produkty.csv", "r");
-                    fgetcsv($file);
+        <div class="row g-5">
+            <div class="col-lg-8">
 
-                    while (($data = fgetcsv($file, 2000, ",")) !== FALSE) {
-                        $kod   = $data[0];
-                        $nazwa = $data[1];
-                        $cena  = (float)str_replace(',', '.', $data[39]);
-                        $opis  = $data[20];
+                <div class="card border-0 shadow-sm mb-4" id="step1-card" style="border-radius: 0;">
+                    <div class="card-header bg-white border-bottom-0 py-3" style="cursor: pointer;" onclick="toggleStep(1)">
+                        <h3 class="section-title m-0 d-flex justify-content-between align-items-center">
+                            <span>1. Typ silosu</span> <i id="step1-icon" class="bi bi-chevron-down step-icon"></i>
+                        </h3>
+                    </div>
+                    <div class="card-body p-3" id="step1-content">
+                        <div class="row g-3" id="categories-container"></div>
+                    </div>
+                </div>
 
-                        // TWOJA SPRAWDZONA LOGIKA ZDJĘĆ
-                        $rozszerzenia = ['webp', 'jpg', 'jpeg', 'png', 'avif'];
-                        $sciezka_foto = '';
-                        foreach ($rozszerzenia as $ext) {
-                            $test_path = "img/" . $kod . "." . $ext;
-                            if (file_exists($test_path)) {
-                                $sciezka_foto = $test_path;
-                                break;
-                            }
-                        }
-                        if (!$sciezka_foto) $sciezka_foto = "img/brakfoto.webp";
+                <div class="card border-0 shadow-sm mb-4 d-none" id="step2-card" style="border-radius: 0;">
+                    <div class="card-header bg-white border-bottom-0 py-3" style="cursor: pointer;" onclick="toggleStep(2)">
+                        <h3 class="section-title m-0 d-flex justify-content-between align-items-center">
+                            <span>2. Model silosu</span>
+                            <i id="step2-icon" class="bi bi-dash step-icon text-muted"></i>
+                        </h3>
+                    </div>
+                    <div class="card-body d-none pt-0" id="step2-content">
+                        <div class="table-responsive border border-top-0">
+                            <table class="table align-middle m-0 table-hover">
+                                <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 50px;" class="text-center">#</th>
+                                    <th>Model silosu</th>
+                                    <th class="text-end">Cena netto</th>
+                                </tr>
+                                </thead>
+                                <tbody id="silos-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-                        echo "<tr class='product-row'>
-                                <td><img src='$sciezka_foto' width='60' height='60' style='object-fit: contain;' class='border rounded bg-white'></td>
-                                <td>
-                                    <div class='fw-bold'>$nazwa</div>
-                                    <small class='text-muted'>$kod</small>
-                                </td>
-                                <td class='price-value text-end text-nowrap' data-price='$cena'>" . number_format($cena, 2, ',', ' ') . " zł</td>
-                                <td class='small text-muted'>$opis</td>
-                                <td>
-                                    <input type='number' name='zamowienie[$nazwa]' 
-                                           class='form-control qty-input' value='0' min='0'>
-                                </td>
-                              </tr>";
-                    }
-                    fclose($file);
-                    ?>
-                    </tbody>
-                </table>
+                <div class="card border-0 shadow-sm mb-5 d-none" id="step3-card" style="border-radius: 0;">
+                    <div class="card-header bg-white border-bottom-0 py-3" style="cursor: pointer;" onclick="toggleStep(3)">
+                        <h3 class="section-title m-0 d-flex justify-content-between align-items-center">
+                            <span>3. Konfiguracja zestawu</span>
+                            <i id="step3-icon" class="bi bi-dash step-icon text-muted"></i>
+                        </h3>
+                    </div>
+                    <div class="card-body d-none pt-0" id="step3-content">
+                        <h6 class="fw-bold mb-3 text-muted text-uppercase">Opcjonalne akcesoria</h6>
+                        <div class="table-responsive border mb-4">
+                            <table class="table align-middle m-0">
+                                <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 60px;" class="text-center"><i class="bi bi-check-square"></i></th>
+                                    <th>Akcesorium i Kod</th>
+                                    <th class="text-end">Cena netto</th>
+                                </tr>
+                                </thead>
+                                <tbody id="accessories-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between bg-light p-3 border">
+                            <label class="fw-bold m-0 text-uppercase" style="color: var(--main-navy);">Ilość zamawianych zestawów:</label>
+                            <input type="number" id="silo-qty" aria-label="Ilość zestawów" class="form-control text-center fw-bold fs-5" value="1" min="1" style="width: 100px; border-radius: 0; border: 2px solid var(--main-navy);">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm p-4 mb-5" id="dane-klienta" style="border-radius: 0;">
+                    <h3 class="section-title mb-4">4. Dane kontaktowe do wyceny</h3>
+                    <div class="row g-4">
+                        <div class="col-md-6"><input type="text" name="klient_nazwa" class="form-control form-control-lg" placeholder="Imię i Nazwisko / Firma" style="border-radius:0;" required></div>
+                        <div class="col-md-6"><input type="email" name="klient_email" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required></div>
+                        <div class="col-md-6"><input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
+                        <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
+                        <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+
+                        <div class="col-12">
+                            <label class="small text-muted mb-1">Skąd dowiedziałeś się o firmie KONSIL?</label>
+                            <select name="skad_info" id="skad_info" class="form-select" style="border-radius:0;">
+                                <option value="" selected>-- Wybierz opcję (opcjonalnie) --</option>
+                                <option value="Internet (Google/Strona www)">Internet (Google/Strona www)</option>
+                                <option value="Social Media (Facebook)">Social Media (Facebook)</option>
+                                <option value="Polecenie od innego rolnika">Polecenie od innego rolnika</option>
+                                <option value="Targi rolnicze">Targi rolnicze</option>
+                                <option value="Prasa rolnicza / Radio">Prasa rolnicza / Radio</option>
+                                <option value="Widziałem silosy u sąsiada">Widziałem silosy u sąsiada</option>
+                                <option value="Inne">Inne</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 mt-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_vat" id="klient_vat" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_vat">Jestem płatnikiem VAT</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_ryczalt" id="klient_ryczalt" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_ryczalt">Rolnik ryczałtowy</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tax-error" class="text-danger small d-none mt-1 fw-bold">Błąd: Nie można wybrać obu statusów jednocześnie.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <hr class="my-4">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" value="1" id="zgoda_rodo" name="zgoda_rodo" required>
+                                <label class="form-check-label small text-muted" for="zgoda_rodo">
+                                    Oświadczam, że zapoznałem się z klauzulą informacyjną RODO i wyrażam zgodę na przetwarzanie moich danych w celu przygotowania oferty. [Wymagane]
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" value="1" id="chce_adres" name="chce_adres" onchange="toggleAddressFields()">
+                                <label class="form-check-label fw-bold" for="chce_adres" style="color: var(--main-navy);">
+                                    Chcę otrzymać szczegółową wycenę transportu i montażu na podany adres
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="address-fields" class="col-12 d-none">
+                            <div class="card card-body bg-light border-0 rounded-0 p-4">
+                                <h6 class="fw-bold mb-3 text-uppercase small" style="color: var(--main-navy);">Adres dostawy i montażu:</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-8"><input type="text" name="adr_miejscowosc" class="form-control" placeholder="Miejscowość"></div>
+                                    <div class="col-md-4"><input type="text" name="adr_kod" class="form-control" placeholder="Kod pocztowy"></div>
+                                    <div class="col-md-6"><input type="text" name="adr_ulica" class="form-control" placeholder="Ulica"></div>
+                                    <div class="col-md-2"><input type="text" name="adr_nr" class="form-control" placeholder="Nr domu"></div>
+                                    <div class="col-md-4"><input type="text" name="adr_poczta" class="form-control" placeholder="Poczta"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="sticky-bottom-custom d-flex justify-content-between align-items-center mt-3">
-                <div>
-                    <span class="text-muted small text-uppercase fw-bold">Wartość Twojej oferty:</span>
-                    <div id="totalValue" class="h2 mb-0 fw-bold" style="color: var(--main-dark);">0,00 zł</div>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-dark px-3 py-2">NETTO</span>
-                </div>
-            </div>
-        </div>
+            <div class="col-lg-4">
+                <div class="sidebar-summary">
+                    <div class="card border-0 shadow p-4" style="border-radius: 0; border-top: 5px solid var(--main-navy);">
+                        <h4 class="fw-bold mb-3" style="color: var(--main-navy);">Twoja konfiguracja</h4>
+                        <hr>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between small text-muted mb-2">
+                                <span>Wybrany silos:</span>
+                                <span id="summary-silo-name" class="fw-bold text-dark text-end">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mb-2">
+                                <span>Opcje dodatkowe:</span>
+                                <span class="fw-bold text-dark"><span id="summary-accs-count">0</span> szt.</span>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>Ilość zestawów:</span>
+                                <span class="fw-bold text-dark"><span id="summary-qty">1</span>x</span>
+                            </div>
+                        </div>
 
-        <div class="card border-0 shadow-sm p-4 mb-5" style="border-radius: 0;">
-            <h3 class="fw-bold mb-4" style="color: var(--main-dark); border-left: 5px solid var(--accent-red); padding-left: 15px;">
-                Dane zamawiającego
-            </h3>
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <input type="text" name="klient_nazwa" class="form-control form-control-lg" placeholder="Imię i Nazwisko / Firma" style="border-radius:0;" required>
-                </div>
-                <div class="col-md-6">
-                    <input type="email" name="klient_email" class="form-control form-control-lg" placeholder="Adres E-mail" style="border-radius:0;" required>
-                </div>
-                <div class="col-md-6">
-                    <input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;">
-                </div>
-                <div class="col-md-6">
-                    <input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required>
-                </div>
-                <div class="col-12">
-                    <textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi lub adres montażu silosów..." style="border-radius:0;"></textarea>
+                        <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
+                        <div class="form-check form-switch mb-3 p-3 bg-light border">
+                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz">
+                            <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label>
+                        </div>
+                        <div class="form-check form-switch mb-4 p-3 bg-light border">
+                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
+                            <label class="form-check-label fw-bold" for="usluga_transport">Zlecam Transport</label>
+                        </div>
+
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-uppercase fw-bold text-muted small">Wartość orientacyjna:</span>
+                            <span class="badge" style="background-color: var(--main-navy);">NETTO</span>
+                        </div>
+                        <div id="totalValue" class="display-6 fw-bold mb-0" style="color: var(--main-navy);">0,00 zł</div>
+                        <div id="totalValueGross" class="text-muted small mb-3" style="font-size: 0.85rem;">
+                            w tym VAT (23%): 0,00 zł brutto
+                        </div>
+
+                        <?php if(!empty($konfiguracja['termin'])): ?>
+                            <div class="small text-muted fst-italic mb-4 text-center">
+                                * <?php echo htmlspecialchars($konfiguracja['termin']); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <button type="submit" class="btn btn-konsil btn-lg w-100 shadow">
+                            Wyślij do wyceny <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-konsil btn-lg mt-5 w-100 shadow">
-                PRZEŚLIJ ZAPYTANIE DO WYCENY
-            </button>
-        </div>
-    </form>
+        </div> </form>
+
+    <?php if(!empty($konfiguracja['note'])): ?>
+        <footer class="mt-5 pb-5">
+            <div class="container border-top pt-4 text-center">
+                <?php if(!empty($konfiguracja['note'])): ?>
+                    <p class="text-muted fst-italic mb-4" style="font-size: 0.75rem; line-height: 1.4;">
+                        <?php echo htmlspecialchars($konfiguracja['note']); ?>
+                    </p>
+                <?php endif; ?>
+
+                <div class="opacity-50">
+                    <p class="mb-1 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 1.5px;">
+                        © 2026 P.O.R. KONSIL - Konfigurator Oferty Online
+                    </p>
+                    <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
+                        Projekt i realizacja:
+                        <a href="#" class="text-decoration-none text-dark fw-bold" style="border-bottom: 1px solid #ccc;">
+                            inż. arch.  Konstanty Kaszubski
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </footer>
+    <?php endif; ?>
 </div>
 
 <script>
-    // WYSZUKIWANIE
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('.product-row');
-        rows.forEach(row => {
-            let text = row.cells[1].textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? "" : "none";
-        });
-    });
+    const config = <?php echo json_encode($konfiguracja); ?>;
+    const categories = <?php echo json_encode($categories_config); ?>;
+    const data = <?php echo json_encode($categories_data); ?>;
 
-    // SUMOWANIE
-    function calculateTotal() {
-        let total = 0;
-        let rows = document.querySelectorAll('.product-row');
-        rows.forEach(row => {
-            let price = parseFloat(row.querySelector('.price-value').dataset.price);
-            let qty = parseInt(row.querySelector('.qty-input').value) || 0;
-            total += price * qty;
-        });
-        document.getElementById('totalValue').innerText =
-            total.toLocaleString('pl-PL', { minimumFractionDigits: 2 }) + " zł";
+    let selectedCategory = null;
+    let selectedSilo = null;
+
+    function toggleStep(stepNumber) {
+        const setIcon = (id, state) => {
+            const icon = document.getElementById(id);
+            if(state === 'open') { icon.className = "bi bi-chevron-up step-icon text-primary"; }
+            if(state === 'done') { icon.className = "bi bi-check2-circle step-icon text-success"; }
+            if(state === 'pending') { icon.className = "bi bi-dash step-icon text-muted"; }
+        };
+
+        const content1 = document.getElementById('step1-content');
+        if (stepNumber === 1) {
+            content1.classList.remove('d-none');
+            setIcon('step1-icon', 'open');
+        } else {
+            content1.classList.add('d-none');
+            setIcon('step1-icon', selectedCategory ? 'done' : 'pending');
+        }
+
+        const card2 = document.getElementById('step2-card');
+        const content2 = document.getElementById('step2-content');
+        if (selectedCategory) card2.classList.remove('d-none');
+
+        if (stepNumber === 2 && selectedCategory) {
+            content2.classList.remove('d-none');
+            setIcon('step2-icon', 'open');
+        } else {
+            content2.classList.add('d-none');
+            setIcon('step2-icon', selectedSilo ? 'done' : 'pending');
+        }
+
+        const card3 = document.getElementById('step3-card');
+        const content3 = document.getElementById('step3-content');
+        if (selectedSilo) card3.classList.remove('d-none');
+
+        if (stepNumber === 3 && selectedSilo) {
+            content3.classList.remove('d-none');
+            setIcon('step3-icon', 'open');
+        } else {
+            content3.classList.add('d-none');
+            setIcon('step3-icon', selectedSilo ? 'done' : 'pending');
+        }
     }
 
-    document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('input', calculateTotal);
-    });
-</script>
+    function checkTaxStatus() {
+        const vat = document.getElementById('klient_vat');
+        const ryc = document.getElementById('klient_ryczalt');
+        const error = document.getElementById('tax-error');
+        if (vat.checked && ryc.checked) {
+            error.classList.remove('d-none');
+            return false;
+        } else {
+            error.classList.add('d-none');
+            calculateTotal(); // Odśwież payload
+            return true;
+        }
+    }
 
+    function toggleAddressFields() {
+        const checkbox = document.getElementById('chce_adres');
+        const fields = document.getElementById('address-fields');
+        if (checkbox.checked) {
+            fields.classList.remove('d-none');
+            fields.querySelectorAll('input').forEach(i => i.required = true);
+        } else {
+            fields.classList.add('d-none');
+            fields.querySelectorAll('input').forEach(i => { i.required = false; i.value = ''; });
+        }
+    }
+
+    function renderCategories() {
+        document.getElementById('categories-container').innerHTML = categories.map(cat => {
+            // Sprawdzamy czy kategoria ma flagę disabled
+            const isDisabled = cat.disabled === true;
+
+            return `
+            <div class="col-md-3"> <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
+                     onclick="${isDisabled ? '' : `selectCategory('${cat.id}', this)`}">
+
+                    ${isDisabled ? '<div class="coming-soon-badge"><i class="bi bi-clock me-1"></i> WKRÓTCE</div>' : ''}
+
+                    <div class="card-body p-2 d-flex flex-column justify-content-center">
+                        <img src="${cat.img}" alt="${cat.name}" class="category-img" onerror="this.onerror=null; this.src='img/placeholder.png';">
+                        <h6 class="fw-bold m-0 mt-2" style="color: var(--main-navy); text-transform:uppercase; font-size: 0.8rem;">${cat.name}</h6>
+                    </div>
+                </div>
+            </div>
+        `;
+        }).join('');
+        toggleStep(1);
+    }
+
+    window.selectCategory = function(id, element) {
+        selectedCategory = id;
+        selectedSilo = null;
+        document.querySelectorAll('.category-tile').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        const silos = data[id] || [];
+        document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => `
+            <tr style="cursor: pointer;" onclick="selectSilo(${i})">
+                <td class="text-center"><input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input"></td>
+                <td><div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div><code class="text-muted small">Kod: ${s.kod}</code></td>
+                <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
+            </tr>
+        `).join('');
+        toggleStep(2);
+        calculateTotal();
+    };
+
+    window.selectSilo = function(index) {
+        selectedSilo = data[selectedCategory][index];
+        document.querySelectorAll('input[name="silo_radio"]').forEach(r => r.checked = false);
+        document.getElementById('silo_r_' + index).checked = true;
+        const tbody = document.getElementById('accessories-tbody');
+        if(selectedSilo.akcesoria.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
+        } else {
+            tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => `
+                <tr class="bg-white">
+                    <td class="text-center"><input class="form-check-input acc-checkbox" type="checkbox" value="${i}" style="width:25px; height:25px;"></td>
+                    <td><div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div><code>${a.kod}</code></td>
+                    <td class="fw-bold text-end">${formatPrice(a.cena)} zł</td>
+                </tr>
+             `).join('');
+            document.querySelectorAll('.acc-checkbox').forEach(cb => cb.addEventListener('change', calculateTotal));
+        }
+        toggleStep(3);
+        calculateTotal();
+    };
+
+    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt'].forEach(id => {
+        document.getElementById(id).addEventListener('change', calculateTotal);
+        if(id === 'silo-qty') document.getElementById(id).addEventListener('input', calculateTotal);
+    });
+
+    function formatPrice(val) { return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function calculateTotal() {
+        let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0;
+        if (selectedSilo) {
+            totalSiloPrice = selectedSilo.cena;
+            document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
+                totalAccPrice += selectedSilo.akcesoria[cb.value].cena;
+                accsCount++;
+            });
+        }
+        const qty = parseInt(document.getElementById('silo-qty').value) || 1;
+        let baseCost = (totalSiloPrice + totalAccPrice) * qty;
+        let multiplier = 1.0;
+        if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
+        if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
+        let finalTotal = baseCost * multiplier;
+
+        document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
+        document.getElementById('summary-accs-count').innerText = accsCount;
+        document.getElementById('summary-qty').innerText = qty;
+        document.getElementById('totalValue').innerText = formatPrice(finalTotal) + " zł";
+        let finalTotalGross = finalTotal * 1.23;
+        document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
+
+        let payload = {
+            silo: selectedSilo, akcesoria: [], qty: qty, baseCost: baseCost,
+            montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
+            transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
+            total: finalTotal,
+            totalGross: finalTotal * 1.23,
+            isVat: document.getElementById('klient_vat').checked,
+            isRyczalt: document.getElementById('klient_ryczalt').checked,
+            skadInfo: document.getElementById('skad_info').value
+        };
+        if (selectedSilo) {
+            document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
+                payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
+            });
+        }
+        document.getElementById('hidden-payload').value = JSON.stringify(payload);
+    }
+
+    function validateForm() {
+        if(!selectedSilo) {
+            alert("Proszę wybrać kategorię oraz model silosu.");
+            return false;
+        }
+        if (!checkTaxStatus()) {
+            alert("Proszę poprawić status podatkowy - nie można być jednocześnie płatnikiem VAT i ryczałtowcem.");
+            return false;
+        }
+        return true;
+    }
+
+    renderCategories();
+</script>
 </body>
 </html>

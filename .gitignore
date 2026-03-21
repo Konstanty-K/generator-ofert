@@ -1,9 +1,31 @@
-# Dane CSV (wrażliwe)
-produkty.csv
+# --- ŚRODOWISKO I KONFIGURACJA ---
+# Nigdy nie wysyłaj haseł do Gita!
+config.php
+.env
+php.ini
 
-# Zdjęcia duże
+# --- DEPENDENCJE ---
+# Nie wysyłaj folderu vendor, każdy instaluje go sam przez 'composer install'
+vendor/
+composer.phar
+
+# --- DANE BIZNESOWE ---
+# Jeśli ceny w CSV są poufne, ignoruj je.
+# Na serwer wgrasz je ręcznie przez FTP.
+*.csv
+
+# --- PLIKI MULTIMEDIALNE ---
+# Ignoruj zdjęcia, jeśli są duże i nie chcesz "zapchać" repozytorium
 img/
 
-# PhpStorm
+# --- IDE (NARZĘDZIA) ---
 .idea/
+.vscode/
 *.iml
+
+# --- SYSTEMOWE / TYMCZASOWE ---
+*.log
+.DS_Store
+Thumbs.db
+rozpakuj.php
+vendor.zip
