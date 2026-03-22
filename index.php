@@ -291,6 +291,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                             <label class="small text-muted mb-1">Skąd dowiedziałeś się o firmie KONSIL?</label>
                             <select name="skad_info" id="skad_info" class="form-select" style="border-radius:0;">
                                 <option value="" selected>-- Wybierz opcję (opcjonalnie) --</option>
+                                <option value="Jestem stałym klientem">Jestem stałym klientem</option>
                                 <option value="Internet (Google/Strona www)">Internet (Google/Strona www)</option>
                                 <option value="Social Media (Facebook)">Social Media (Facebook)</option>
                                 <option value="Polecenie od innego rolnika">Polecenie od innego rolnika</option>
