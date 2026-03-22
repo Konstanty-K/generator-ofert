@@ -156,20 +156,58 @@ foreach ($categories_config as $cat) {
                 }
 
                 // --- POBIERANIE RESZTY AKCESORIÓW ---
+                $last_acc_key = -1; // Śledzimy ostatni dodany element, aby móc do niego "doklejać"
+
                 for ($i = $acc_start_idx; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
-                        $parts = explode(',', $val);
-                        foreach ($parts as $p) {
-                            $ac_code = trim($p);
-                            if($ac_code) {
-                                $ac_master = $cenyMaster[$ac_code] ?? ['nazwa' => $ac_code, 'cena' => 0];
-                                $accs_detailed[] = [
-                                        'kod' => $ac_code,
-                                        'nazwa' => $ac_master['nazwa'],
-                                        'cena' => $ac_master['cena']
-                                ];
+
+                        // Czy komórka zaczyna się od '+', co oznacza łączenie z poprzednią kolumną?
+                        $is_merge_with_prev = (strpos($val, '+') === 0);
+                        $clean_val = $is_merge_with_prev ? substr($val, 1) : $val;
+                        $group_id = '';
+
+                        // Czy mamy grupę wykluczającą '!' ?
+                        if (strpos($clean_val, '!') === 0) {
+                            $parts = explode(':', substr($clean_val, 1));
+                            if (count($parts) > 1) {
+                                $group_id = trim($parts[0]);
+                                $clean_val = trim($parts[1]);
                             }
+                        }
+
+                        // Rozbijamy zawartość komórki po '+' (pakiety wewnątrz jednej kratki)
+                        $bundle_parts = explode('+', $clean_val);
+                        $total_acc_price = 0;
+                        $combined_names = [];
+                        $combined_codes = [];
+
+                        foreach ($bundle_parts as $part) {
+                            $code = trim($part);
+                            if (!$code) continue;
+
+                            $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
+                            $total_acc_price += $master['cena'];
+                            $combined_names[] = $master['nazwa'];
+                            $combined_codes[] = $code;
+                        }
+
+                        if ($is_merge_with_prev && $last_acc_key >= 0) {
+                            // ŁĄCZYMY Z POPRZEDNIĄ KOLUMNĄ
+                            $accs_detailed[$last_acc_key]['kod']   .= ' + ' . implode(' + ', $combined_codes);
+                            $accs_detailed[$last_acc_key]['nazwa'] .= ' + ' . implode(' + ', $combined_names);
+                            $accs_detailed[$last_acc_key]['cena']  += $total_acc_price;
+                            // Jeśli nowa kolumna niesie ze sobą grupę, przypisz ją do całości
+                            if ($group_id) $accs_detailed[$last_acc_key]['group'] = $group_id;
+                        } else {
+                            // DODAJEMY JAKO NOWĄ POZYCJĘ
+                            $accs_detailed[] = [
+                                    'kod'   => implode(' + ', $combined_codes),
+                                    'nazwa' => implode(' + ', $combined_names),
+                                    'cena'  => $total_acc_price,
+                                    'group' => $group_id
+                            ];
+                            $last_acc_key = count($accs_detailed) - 1;
                         }
                     }
                 }
@@ -587,23 +625,58 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     };
 
     window.selectSilo = function(index) {
+        // 1. Ustawiamy wybrany silos
         selectedSilo = data[selectedCategory][index];
+
+        // 2. Zaznaczamy radio button w tabeli krok wyżej
         const radios = document.querySelectorAll('input[name="silo_radio"]');
         if(radios[index]) radios[index].checked = true;
 
+        // 3. Generujemy tabelę akcesoriów
         const tbody = document.getElementById('accessories-tbody');
+
         if(!selectedSilo.akcesoria || selectedSilo.akcesoria.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
         } else {
-            tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => `
+            tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => {
+                // Logika grup wykluczających
+                const groupAttr = a.group ? `data-group="${a.group}"` : '';
+                const groupClass = a.group ? `acc-grouped` : '';
+
+                return `
                 <tr class="bg-white">
-                    <td class="text-center"><input class="form-check-input acc-checkbox" type="checkbox" value="${i}" style="width:25px; height:25px;"></td>
-                    <td><div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div><code>${a.kod}</code></td>
+                    <td class="text-center">
+                        <input class="form-check-input acc-checkbox ${groupClass}"
+                               type="checkbox"
+                               value="${i}"
+                               ${groupAttr}
+                               style="width:25px; height:25px;">
+                    </td>
+                    <td>
+                        <div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div>
+                        <code>${a.kod}</code>
+                    </td>
                     <td class="fw-bold text-end">${formatPrice(a.cena)} zł</td>
-                </tr>
-             `).join('');
-            document.querySelectorAll('.acc-checkbox').forEach(cb => cb.addEventListener('change', calculateTotal));
+                </tr>`;
+            }).join('');
+
+            // 4. Podpinamy zdarzenia (ważna kolejność!)
+            document.querySelectorAll('.acc-checkbox').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    // Jeśli to checkbox grupowy i został zaznaczony
+                    if (this.classList.contains('acc-grouped') && this.checked) {
+                        const group = this.getAttribute('data-group');
+                        // Odznacz inne z tej samej grupy
+                        document.querySelectorAll(`.acc-grouped[data-group="${group}"]`).forEach(other => {
+                            if (other !== this) other.checked = false;
+                        });
+                    }
+                    // Po każdej zmianie przeliczamy sumę
+                    calculateTotal();
+                });
+            });
         }
+
         toggleStep(3);
         calculateTotal();
     };
@@ -617,21 +690,25 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
         if (selectedSilo) {
             totalSiloPrice = selectedSilo.cena;
+            // Sumujemy tylko zaznaczone checkboxy
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
-                totalAccPrice += selectedSilo.akcesoria[cb.value].cena;
+                const accIndex = cb.value;
+                totalAccPrice += selectedSilo.akcesoria[accIndex].cena;
                 accsCount++;
             });
-        } // <--- TUTAJ BYŁ BRAKUJĄCY NAWIAS!
+        }
 
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
-        let multiplier = 1.0;
 
+        // Obliczamy mnożniki za montaż/transport
+        let multiplier = 1.0;
         if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
         if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
 
         let finalTotal = baseCost * multiplier;
 
+        // Aktualizacja UI
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
@@ -640,6 +717,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         let finalTotalGross = finalTotal * 1.23;
         document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
+        // Budowa paczki danych (Payload)
         let payload = {
             silo: selectedSilo,
             akcesoria: [],
@@ -660,6 +738,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                 payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
             });
         }
+
         document.getElementById('hidden-payload').value = JSON.stringify(payload);
     }
 
