@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="author" content="inż. arch. Konstanty Kaszubski">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silosy Konsil - Konfigurator Oferty</title>
+    <title>SILOSY KONSIL - KONFIGURATOR WYCENY</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -106,9 +106,9 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
 
 // 2. KATEGORIE
 $categories_config = [
-        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'WYCENA- ONLINE - silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
+        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
         ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'disabled' => true],
-        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
         ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'disabled' => true],
         ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
 ];
@@ -118,14 +118,19 @@ foreach ($categories_config as $cat) {
     $silos = [];
     if (file_exists($cat['file']) && ($handle = @fopen($cat['file'], "r")) !== FALSE) {
         $model_row_found = false;
+// ... wewnątrz pętli foreach ($categories_config as $cat) ...
         while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
             $first_col = trim(strtoupper($data[0] ?? ''));
             if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') { $model_row_found = true; continue; }
 
             if ($model_row_found && $first_col !== '' && $first_col !== 'NAN') {
-                $silo_code = trim($data[0]);
+                $silo_code   = trim($data[0]);
+                $custom_desc = trim($data[1] ?? ''); // Kolumna B
+                $ladownosc   = trim($data[2] ?? ''); // Kolumna C
+
+                // AKCESORIA: Zaczynamy od indeksu 3 (Kolumna D)
                 $accs = [];
-                for ($i = 1; $i < count($data); $i++) {
+                for ($i = 3; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
                         $parts = explode(',', $val);
@@ -137,6 +142,11 @@ foreach ($categories_config as $cat) {
                 }
 
                 $silo_master = $cenyMaster[$silo_code] ?? ['nazwa' => $silo_code, 'cena' => 0];
+
+                // LOGIKA NADPISYWANIA OPISU:
+                // Jeśli $custom_desc nie jest pusty, używamy go. Jeśli pusty - bierzemy z $silo_master.
+                $final_name = !empty($custom_desc) ? $custom_desc : $silo_master['nazwa'];
+
                 $accs_detailed = [];
                 foreach ($accs as $ac) {
                     $ac_master = $cenyMaster[$ac] ?? ['nazwa' => $ac, 'cena' => 0];
@@ -144,8 +154,11 @@ foreach ($categories_config as $cat) {
                 }
 
                 $silos[] = [
-                        'kod' => $silo_code, 'nazwa' => $silo_master['nazwa'],
-                        'cena' => $silo_master['cena'], 'akcesoria' => $accs_detailed
+                        'kod'       => $silo_code,
+                        'nazwa'     => $final_name, // Tutaj trafia opis z CSV lub z Comarchu
+                        'cena'      => $silo_master['cena'],
+                        'ladownosc' => $ladownosc,
+                        'akcesoria' => $accs_detailed
                 ];
             }
         }
@@ -217,8 +230,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                 <tr>
                                     <th style="width: 50px;" class="text-center">#</th>
                                     <th>Model silosu</th>
-                                    <th class="text-end">Cena netto</th>
-                                </tr>
+                                    <th class="text-center">Ładowność*</th> <th class="text-end">Cena netto</th>                                </tr>
                                 </thead>
                                 <tbody id="silos-tbody"></tbody>
                             </table>
@@ -263,6 +275,17 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <div class="col-md-6"><input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
                         <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
                         <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0" style="border-radius:0;">
+                                    <i class="bi bi-tag-fill text-muted"></i>
+                                </span>
+                                <input type="text" name="kod_rabatowy" id="kod_rabatowy"
+                                       class="form-control form-control-lg border-start-0"
+                                       placeholder="Kod rabatowy (opcjonalnie)"
+                                       style="border-radius:0; font-size: 0.9rem; text-transform: uppercase;">
+                            </div>
+                        </div>
 
                         <div class="col-12">
                             <label class="small text-muted mb-1">Skąd dowiedziałeś się o firmie KONSIL?</label>
@@ -351,11 +374,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
                         <div class="form-check form-switch mb-3 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz">
-                            <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label>
+                            <label class="form-check-label fw-bold" for="usluga_montaz">Dodaj orientacyjną cenę montażu</label>
                         </div>
                         <div class="form-check form-switch mb-4 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
-                            <label class="form-check-label fw-bold" for="usluga_transport">Zlecam Transport</label>
+                            <label class="form-check-label fw-bold" for="usluga_transport">Dodaj orientacyjną cenę transportu</label>
                         </div>
 
                         <hr>
@@ -505,19 +528,89 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         toggleStep(1);
     }
 
+    function renderSilos(silos) {
+        let html = '<div class="row g-3">';
+
+        silos.forEach(s => {
+            // Ładowność wyświetlamy tylko jeśli komórka w CSV nie była pusta
+            const ladownoscHTML = s.ladownosc ?
+                `<div class="mt-1 text-muted" style="font-size: 0.75rem;">
+                Ładowność*: <strong>${s.ladownosc} t</strong>
+            </div>` : '';
+
+            html += `
+            <div class="col-md-4">
+                <div class="card h-100 silo-card border-0 shadow-sm" onclick="selectSilo('${s.kod}')" style="cursor:pointer; transition: 0.2s;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-1" style="color: var(--main-navy);">${s.nazwa}</h6>
+                        <small class="text-uppercase text-muted" style="font-size: 0.65rem; letter-spacing: 1px;">Kod: ${s.kod}</small>
+
+                        ${ladownoscHTML}
+
+                        <div class="fw-bold mt-2" style="color: #d9534f;">${formatCena(s.cena)} zł netto</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        });
+
+        html += '</div>';
+
+        // PRZYPIS NA DOLE (wyświetlany zawsze, gdy jesteśmy w kroku wyboru silosu)
+        html += `
+        <div class="mt-4 pt-2 border-top">
+            <p class="text-muted" style="font-size: 0.65rem; line-height: 1.2;">
+                * Ładowność została obliczona dla pszenicy o gęstości 750 kg/m³.
+                Wartość ta ma charakter orientacyjny i może ulec zmianie w zależności od parametrów sypkich surowca.
+            </p>
+        </div>
+    `;
+
+        document.getElementById('silos-container').innerHTML = html;
+    }
+
     window.selectCategory = function(id, element) {
         selectedCategory = id;
         selectedSilo = null;
         document.querySelectorAll('.category-tile').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
+
         const silos = data[id] || [];
-        document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => `
+
+        // Budujemy wiersze tabeli
+        document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => {
+            // Sprawdzamy czy jest ładowność, jeśli nie - dajemy kreskę
+            const ladownoscDisplay = s.ladownosc ? `<strong>${s.ladownosc} t</strong>` : '-';
+
+            return `
             <tr style="cursor: pointer;" onclick="selectSilo(${i})">
-                <td class="text-center"><input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input"></td>
-                <td><div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div><code class="text-muted small">Kod: ${s.kod}</code></td>
-                <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
+                <td class="text-center">
+                    <input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input">
+                </td>
+                <td>
+                    <div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div>
+                    <code class="text-muted small">Kod: ${s.kod}</code>
+                </td>
+                <td class="text-center text-muted">
+                    ${ladownoscDisplay} </td>
+                <td class="fw-bold text-end">
+                    ${formatPrice(s.cena)} zł
+                </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
+
+        // DODAJEMY PRZYPIS POD TABELĄ
+        const existingNote = document.getElementById('ladownosc-note');
+        if(!existingNote) {
+            const note = document.createElement('div');
+            note.id = 'ladownosc-note';
+            note.className = 'p-2 text-muted';
+            note.style.fontSize = '0.7rem';
+            note.innerHTML = '* Ładowność obliczona dla pszenicy o gęstości 750 kg/m³.';
+            document.getElementById('step2-content').appendChild(note);
+        }
+
         toggleStep(2);
         calculateTotal();
     };
@@ -558,7 +651,6 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                 totalAccPrice += selectedSilo.akcesoria[cb.value].cena;
                 accsCount++;
             });
-        }
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
         let multiplier = 1.0;
@@ -581,7 +673,8 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             totalGross: finalTotal * 1.23,
             isVat: document.getElementById('klient_vat').checked,
             isRyczalt: document.getElementById('klient_ryczalt').checked,
-            skadInfo: document.getElementById('skad_info').value
+            skadInfo: document.getElementById('skad_info').value,
+            kodRabatowy: document.getElementById('kod_rabatowy').value
         };
         if (selectedSilo) {
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {

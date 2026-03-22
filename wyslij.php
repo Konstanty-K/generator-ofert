@@ -217,8 +217,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mail->Subject = 'Zapytanie ofertowe: ' . $payload['silo']['nazwa'] . ' - ' . $klient['nazwa'];
             $mail->Body = "Pojawiło się nowe zapytanie ofertowe.<br><br>
                           <b>Klient:</b> {$klient['nazwa']}<br>
-                          <b>Wartość:</b> " . number_format($payload['total'], 2, ',', ' ') . " zł netto<br><br>
-                          PDF w załączniku.";
+                          <b>Wartość:</b> " . number_format($payload['total'], 2, ',', ' ') . " zł netto<br>";
+
+            if (!empty($payload['kodRabatowy'])) {
+                $mail->Body .= "<b>KOD RABATOWY:</b> <span style='color:red; font-weight:bold;'>" . htmlspecialchars($payload['kodRabatowy']) . "</span><br>";
+            }
+
+            $mail->Body .= "<br>PDF w załączniku.";
 
             $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
 
