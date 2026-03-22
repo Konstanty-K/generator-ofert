@@ -107,8 +107,9 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
 // 2. KATEGORIE
 $categories_config = [
         ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'WYCENA- ONLINE - silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
-        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png'],
+        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'disabled' => true],
         ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'disabled' => true],
         ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
 ];
 
