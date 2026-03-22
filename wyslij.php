@@ -13,9 +13,9 @@ $config = require 'config.php';
 require 'vendor/autoload.php';
 if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
     die("BŁĄD: Nie znaleziono pliku autoload.php w " . __DIR__ . "/vendor/");
-} else {
-    echo "Autoloader załadowany poprawnie.";
-}
+} #else {
+  #  echo "Autoloader załadowany poprawnie.";
+#}
 //require_once __DIR__ . '/vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -122,9 +122,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <th style="text-align: right;">Cena jedn. netto</th>
             </tr>
         </thead>
-        <tbody>
+<tbody>
             <tr>
-                <td><strong>Silos: ' . htmlspecialchars($payload['silo']['nazwa']) . '</strong></td>
+                <td>
+                    <strong>Silos: ' . htmlspecialchars($payload['silo']['nazwa']) . '</strong><br>
+                    <span style="font-size: 9px; color: #666;">Kod produktu: ' . htmlspecialchars($payload['silo']['kod']) . '</span>';
+
+    // DODAJEMY ŁADOWNOŚĆ DO PDF
+    if (!empty($payload['silo']['ladownosc'])) {
+        $html .= '<br><span style="font-size: 10px; color: #333;">Ładowność*: <strong>' . htmlspecialchars($payload['silo']['ladownosc']) . ' t</strong></span>';
+    }
+
+    $html .= '</td>
                 <td><code>' . htmlspecialchars($payload['silo']['kod']) . '</code></td>
                 <td style="text-align: right;">' . number_format($payload['silo']['cena'], 2, ',', ' ') . ' zł</td>
             </tr>';
@@ -157,6 +166,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <p>' . nl2br(htmlspecialchars($klient['uwagi'] ?: 'Brak dodatkowych uwag.')) . '</p>
 
     <div class="footer">
+        ' . (!empty($payload['silo']['ladownosc']) ? '
+        <p style="font-size: 8px; text-align: left; color: #777; margin-bottom: 5px;">
+            * Ładowność została obliczona dla pszenicy o gęstości 750 kg/m³. Przedstawiona wartość ma charakter orientacyjny.
+        </p>' : '') . '
+        
+        ' . (!empty($payload['kodRabatowy']) ? '
+        <p style="font-size: 10px; text-align: right; font-weight: bold; color: #d9534f; margin-bottom: 10px;">
+            Zastosowany kod rabatowy: ' . htmlspecialchars($payload['kodRabatowy']) . '
+        </p>' : '') . '
+
         Dokument wygenerowany ' . date('d.m.Y H:i') . ' przez konfigurator online Konsil.<br>
         © 2026 P.O.R. KONSIL - Bydgoszcz. Niniejszy dokument nie stanowi oferty w rozumieniu KC.
     </div>';

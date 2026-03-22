@@ -121,49 +121,71 @@ foreach ($categories_config as $cat) {
 // ... wewnątrz pętli foreach ($categories_config as $cat) ...
         while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
             $first_col = trim(strtoupper($data[0] ?? ''));
-            if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') { $model_row_found = true; continue; }
+            if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') {
+                $model_row_found = true;
+                $has_blocks_logic = (isset($data[4]) && strtoupper(trim($data[4])) === 'XO1');
+                continue;
+            }
 
             if ($model_row_found && $first_col !== '' && $first_col !== 'NAN') {
-                $silo_code   = trim($data[0]);
-                $custom_desc = trim($data[1] ?? ''); // Kolumna B
-                $ladownosc   = trim($data[2] ?? ''); // Kolumna C
+                $silo_code = trim($data[0]);
+                $custom_desc = trim($data[1] ?? '');
+                $ladownosc = trim($data[2] ?? '');
 
-                // AKCESORIA: Zaczynamy od indeksu 3 (Kolumna D)
-                $accs = [];
-                for ($i = 3; $i < count($data); $i++) {
+                $accs_detailed = []; // Tu będą wszystkie opcje do wyboru
+                $acc_start_idx = 3;
+
+                // --- LOGIKA BLOCZKÓW JAKO OPCJA DO WYBORU ---
+                if ($has_blocks_logic) {
+                    $kod_bloczka = trim($data[3] ?? '');
+                    $ilosc_bloczkow = (int)trim($data[4] ?? 0);
+                    $acc_start_idx = 5;
+
+                    if ($kod_bloczka && $ilosc_bloczkow > 0) {
+                        $b_master = $cenyMaster[$kod_bloczka] ?? ['nazwa' => 'Elementy ceramiczne', 'cena' => 0];
+                        $cena_zestawu = $b_master['cena'] * $ilosc_bloczkow;
+
+                        // Dodajemy bloczki jako PIERWSZE akcesorium na liście
+                        $accs_detailed[] = [
+                                'kod' => $kod_bloczka,
+                                'nazwa' => $b_master['nazwa'] . " (komplet $ilosc_bloczkow szt.)",
+                                'cena' => $cena_zestawu,
+                                'is_blocks' => true // Flaga dla nas
+                        ];
+                    }
+                }
+
+                // --- POBIERANIE RESZTY AKCESORIÓW ---
+                for ($i = $acc_start_idx; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
                         $parts = explode(',', $val);
-                        foreach ($parts as $part) {
-                            $p = trim($part);
-                            if($p) $accs[] = $p;
+                        foreach ($parts as $p) {
+                            $ac_code = trim($p);
+                            if($ac_code) {
+                                $ac_master = $cenyMaster[$ac_code] ?? ['nazwa' => $ac_code, 'cena' => 0];
+                                $accs_detailed[] = [
+                                        'kod' => $ac_code,
+                                        'nazwa' => $ac_master['nazwa'],
+                                        'cena' => $ac_master['cena']
+                                ];
+                            }
                         }
                     }
                 }
 
                 $silo_master = $cenyMaster[$silo_code] ?? ['nazwa' => $silo_code, 'cena' => 0];
-
-                // LOGIKA NADPISYWANIA OPISU:
-                // Jeśli $custom_desc nie jest pusty, używamy go. Jeśli pusty - bierzemy z $silo_master.
                 $final_name = !empty($custom_desc) ? $custom_desc : $silo_master['nazwa'];
-
-                $accs_detailed = [];
-                foreach ($accs as $ac) {
-                    $ac_master = $cenyMaster[$ac] ?? ['nazwa' => $ac, 'cena' => 0];
-                    $accs_detailed[] = ['kod' => $ac, 'nazwa' => $ac_master['nazwa'], 'cena' => $ac_master['cena']];
-                }
 
                 $silos[] = [
                         'kod'       => $silo_code,
-                        'nazwa'     => $final_name, // Tutaj trafia opis z CSV lub z Comarchu
-                        'cena'      => $silo_master['cena'],
+                        'nazwa'     => $final_name,
+                        'cena'      => $silo_master['cena'], // Cena bazowa silosu WRACA DO NORMY
                         'ladownosc' => $ladownosc,
-                        'akcesoria' => $accs_detailed
+                        'akcesoria' => $accs_detailed // Bloczki są teraz tutaj!
                 ];
             }
-        }
-        fclose($handle);
-    }
+        }    }
     $categories_data[$cat['id']] = $silos;
 }
 
@@ -442,6 +464,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     function toggleStep(stepNumber) {
         const setIcon = (id, state) => {
             const icon = document.getElementById(id);
+            if(!icon) return;
             if(state === 'open') { icon.className = "bi bi-chevron-up step-icon text-primary"; }
             if(state === 'done') { icon.className = "bi bi-check2-circle step-icon text-success"; }
             if(state === 'pending') { icon.className = "bi bi-dash step-icon text-muted"; }
@@ -490,7 +513,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             return false;
         } else {
             error.classList.add('d-none');
-            calculateTotal(); // Odśwież payload
+            calculateTotal();
             return true;
         }
     }
@@ -509,65 +532,20 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     function renderCategories() {
         document.getElementById('categories-container').innerHTML = categories.map(cat => {
-            // Sprawdzamy czy kategoria ma flagę disabled
             const isDisabled = cat.disabled === true;
-
             return `
-            <div class="col-md-3"> <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
+            <div class="col-md-3">
+                <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
                      onclick="${isDisabled ? '' : `selectCategory('${cat.id}', this)`}">
-
                     ${isDisabled ? '<div class="coming-soon-badge"><i class="bi bi-clock me-1"></i> WKRÓTCE</div>' : ''}
-
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
                         <img src="${cat.img}" alt="${cat.name}" class="category-img" onerror="this.onerror=null; this.src='img/placeholder.png';">
                         <h6 class="fw-bold m-0 mt-2" style="color: var(--main-navy); text-transform:uppercase; font-size: 0.8rem;">${cat.name}</h6>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
         }).join('');
         toggleStep(1);
-    }
-
-    function renderSilos(silos) {
-        let html = '<div class="row g-3">';
-
-        silos.forEach(s => {
-            // Ładowność wyświetlamy tylko jeśli komórka w CSV nie była pusta
-            const ladownoscHTML = s.ladownosc ?
-                `<div class="mt-1 text-muted" style="font-size: 0.75rem;">
-                Ładowność*: <strong>${s.ladownosc} t</strong>
-            </div>` : '';
-
-            html += `
-            <div class="col-md-4">
-                <div class="card h-100 silo-card border-0 shadow-sm" onclick="selectSilo('${s.kod}')" style="cursor:pointer; transition: 0.2s;">
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-1" style="color: var(--main-navy);">${s.nazwa}</h6>
-                        <small class="text-uppercase text-muted" style="font-size: 0.65rem; letter-spacing: 1px;">Kod: ${s.kod}</small>
-
-                        ${ladownoscHTML}
-
-                        <div class="fw-bold mt-2" style="color: #d9534f;">${formatCena(s.cena)} zł netto</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        });
-
-        html += '</div>';
-
-        // PRZYPIS NA DOLE (wyświetlany zawsze, gdy jesteśmy w kroku wyboru silosu)
-        html += `
-        <div class="mt-4 pt-2 border-top">
-            <p class="text-muted" style="font-size: 0.65rem; line-height: 1.2;">
-                * Ładowność została obliczona dla pszenicy o gęstości 750 kg/m³.
-                Wartość ta ma charakter orientacyjny i może ulec zmianie w zależności od parametrów sypkich surowca.
-            </p>
-        </div>
-    `;
-
-        document.getElementById('silos-container').innerHTML = html;
     }
 
     window.selectCategory = function(id, element) {
@@ -578,11 +556,8 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
         const silos = data[id] || [];
 
-        // Budujemy wiersze tabeli
         document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => {
-            // Sprawdzamy czy jest ładowność, jeśli nie - dajemy kreskę
             const ladownoscDisplay = s.ladownosc ? `<strong>${s.ladownosc} t</strong>` : '-';
-
             return `
             <tr style="cursor: pointer;" onclick="selectSilo(${i})">
                 <td class="text-center">
@@ -592,16 +567,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     <div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div>
                     <code class="text-muted small">Kod: ${s.kod}</code>
                 </td>
-                <td class="text-center text-muted">
-                    ${ladownoscDisplay} </td>
-                <td class="fw-bold text-end">
-                    ${formatPrice(s.cena)} zł
-                </td>
-            </tr>
-        `;
+                <td class="text-center text-muted">${ladownoscDisplay}</td>
+                <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
+            </tr>`;
         }).join('');
 
-        // DODAJEMY PRZYPIS POD TABELĄ
         const existingNote = document.getElementById('ladownosc-note');
         if(!existingNote) {
             const note = document.createElement('div');
@@ -618,10 +588,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     window.selectSilo = function(index) {
         selectedSilo = data[selectedCategory][index];
-        document.querySelectorAll('input[name="silo_radio"]').forEach(r => r.checked = false);
-        document.getElementById('silo_r_' + index).checked = true;
+        const radios = document.querySelectorAll('input[name="silo_radio"]');
+        if(radios[index]) radios[index].checked = true;
+
         const tbody = document.getElementById('accessories-tbody');
-        if(selectedSilo.akcesoria.length === 0) {
+        if(!selectedSilo.akcesoria || selectedSilo.akcesoria.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
         } else {
             tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => `
@@ -637,46 +608,53 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         calculateTotal();
     };
 
-    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt'].forEach(id => {
-        document.getElementById(id).addEventListener('change', calculateTotal);
-        if(id === 'silo-qty') document.getElementById(id).addEventListener('input', calculateTotal);
-    });
-
-    function formatPrice(val) { return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function formatPrice(val) {
+        return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
     function calculateTotal() {
         let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0;
+
         if (selectedSilo) {
             totalSiloPrice = selectedSilo.cena;
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
                 totalAccPrice += selectedSilo.akcesoria[cb.value].cena;
                 accsCount++;
             });
+        } // <--- TUTAJ BYŁ BRAKUJĄCY NAWIAS!
+
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
         let multiplier = 1.0;
+
         if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
         if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
+
         let finalTotal = baseCost * multiplier;
 
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
         document.getElementById('totalValue').innerText = formatPrice(finalTotal) + " zł";
+
         let finalTotalGross = finalTotal * 1.23;
         document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
         let payload = {
-            silo: selectedSilo, akcesoria: [], qty: qty, baseCost: baseCost,
+            silo: selectedSilo,
+            akcesoria: [],
+            qty: qty,
+            baseCost: baseCost,
             montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
             transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
             total: finalTotal,
-            totalGross: finalTotal * 1.23,
+            totalGross: finalTotalGross,
             isVat: document.getElementById('klient_vat').checked,
             isRyczalt: document.getElementById('klient_ryczalt').checked,
             skadInfo: document.getElementById('skad_info').value,
             kodRabatowy: document.getElementById('kod_rabatowy').value
         };
+
         if (selectedSilo) {
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
                 payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
@@ -691,12 +669,22 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             return false;
         }
         if (!checkTaxStatus()) {
-            alert("Proszę poprawić status podatkowy - nie można być jednocześnie płatnikiem VAT i ryczałtowcem.");
+            alert("Proszę poprawić status podatkowy.");
             return false;
         }
         return true;
     }
 
+    // Dodanie nasłuchiwaczy zdarzeń
+    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt', 'kod_rabatowy'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            el.addEventListener('change', calculateTotal);
+            if(id === 'silo-qty' || id === 'kod_rabatowy') el.addEventListener('input', calculateTotal);
+        }
+    });
+
+    // Start aplikacji
     renderCategories();
 </script>
 </body>
