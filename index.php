@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="author" content="inż. arch. Konstanty Kaszubski">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silosy Konsil - Konfigurator Oferty</title>
+    <title>SILOSY KONSIL - KONFIGURATOR WYCENY</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -106,9 +106,10 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
 
 // 2. KATEGORIE
 $categories_config = [
-        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'WYCENA- ONLINE - silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
-        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png'],
-        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'WYCENA- ONLINE - silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
+        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'disabled' => true],
+        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
+        ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'disabled' => true],
         ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
 ];
 
@@ -117,39 +118,112 @@ foreach ($categories_config as $cat) {
     $silos = [];
     if (file_exists($cat['file']) && ($handle = @fopen($cat['file'], "r")) !== FALSE) {
         $model_row_found = false;
+// ... wewnątrz pętli foreach ($categories_config as $cat) ...
         while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
             $first_col = trim(strtoupper($data[0] ?? ''));
-            if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') { $model_row_found = true; continue; }
+            if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') {
+                $model_row_found = true;
+                $has_blocks_logic = (isset($data[4]) && strtoupper(trim($data[4])) === 'XO1');
+                continue;
+            }
 
             if ($model_row_found && $first_col !== '' && $first_col !== 'NAN') {
                 $silo_code = trim($data[0]);
-                $accs = [];
-                for ($i = 1; $i < count($data); $i++) {
+                $custom_desc = trim($data[1] ?? '');
+                $ladownosc = trim($data[2] ?? '');
+
+                $accs_detailed = []; // Tu będą wszystkie opcje do wyboru
+                $acc_start_idx = 3;
+
+                // --- LOGIKA BLOCZKÓW JAKO OPCJA DO WYBORU ---
+                if ($has_blocks_logic) {
+                    $kod_bloczka = trim($data[3] ?? '');
+                    $ilosc_bloczkow = (int)trim($data[4] ?? 0);
+                    $acc_start_idx = 5;
+
+                    if ($kod_bloczka && $ilosc_bloczkow > 0) {
+                        $b_master = $cenyMaster[$kod_bloczka] ?? ['nazwa' => 'Elementy ceramiczne', 'cena' => 0];
+                        $cena_zestawu = $b_master['cena'] * $ilosc_bloczkow;
+
+                        // Dodajemy bloczki jako PIERWSZE akcesorium na liście
+                        $accs_detailed[] = [
+                                'kod' => $kod_bloczka,
+                                'nazwa' => $b_master['nazwa'] . " (komplet $ilosc_bloczkow szt.)",
+                                'cena' => $cena_zestawu,
+                                'is_blocks' => true // Flaga dla nas
+                        ];
+                    }
+                }
+
+                // --- POBIERANIE RESZTY AKCESORIÓW ---
+                $last_acc_key = -1; // Śledzimy ostatni dodany element, aby móc do niego "doklejać"
+
+                for ($i = $acc_start_idx; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
-                        $parts = explode(',', $val);
-                        foreach ($parts as $part) {
-                            $p = trim($part);
-                            if($p) $accs[] = $p;
+
+                        // Czy komórka zaczyna się od '+', co oznacza łączenie z poprzednią kolumną?
+                        $is_merge_with_prev = (strpos($val, '+') === 0);
+                        $clean_val = $is_merge_with_prev ? substr($val, 1) : $val;
+                        $group_id = '';
+
+                        // Czy mamy grupę wykluczającą '!' ?
+                        if (strpos($clean_val, '!') === 0) {
+                            $parts = explode(':', substr($clean_val, 1));
+                            if (count($parts) > 1) {
+                                $group_id = trim($parts[0]);
+                                $clean_val = trim($parts[1]);
+                            }
+                        }
+
+                        // Rozbijamy zawartość komórki po '+' (pakiety wewnątrz jednej kratki)
+                        $bundle_parts = explode('+', $clean_val);
+                        $total_acc_price = 0;
+                        $combined_names = [];
+                        $combined_codes = [];
+
+                        foreach ($bundle_parts as $part) {
+                            $code = trim($part);
+                            if (!$code) continue;
+
+                            $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
+                            $total_acc_price += $master['cena'];
+                            $combined_names[] = $master['nazwa'];
+                            $combined_codes[] = $code;
+                        }
+
+                        if ($is_merge_with_prev && $last_acc_key >= 0) {
+                            // ŁĄCZYMY Z POPRZEDNIĄ KOLUMNĄ
+                            $accs_detailed[$last_acc_key]['kod']   .= ' + ' . implode(' + ', $combined_codes);
+                            $accs_detailed[$last_acc_key]['nazwa'] .= ' + ' . implode(' + ', $combined_names);
+                            $accs_detailed[$last_acc_key]['cena']  += $total_acc_price;
+                            // Jeśli nowa kolumna niesie ze sobą grupę, przypisz ją do całości
+                            if ($group_id) $accs_detailed[$last_acc_key]['group'] = $group_id;
+                        } else {
+                            // DODAJEMY JAKO NOWĄ POZYCJĘ
+                            $accs_detailed[] = [
+                                    'kod'   => implode(' + ', $combined_codes),
+                                    'nazwa' => implode(' + ', $combined_names),
+                                    'cena'  => $total_acc_price,
+                                    'group' => $group_id
+                            ];
+                            $last_acc_key = count($accs_detailed) - 1;
                         }
                     }
                 }
 
                 $silo_master = $cenyMaster[$silo_code] ?? ['nazwa' => $silo_code, 'cena' => 0];
-                $accs_detailed = [];
-                foreach ($accs as $ac) {
-                    $ac_master = $cenyMaster[$ac] ?? ['nazwa' => $ac, 'cena' => 0];
-                    $accs_detailed[] = ['kod' => $ac, 'nazwa' => $ac_master['nazwa'], 'cena' => $ac_master['cena']];
-                }
+                $final_name = !empty($custom_desc) ? $custom_desc : $silo_master['nazwa'];
 
                 $silos[] = [
-                        'kod' => $silo_code, 'nazwa' => $silo_master['nazwa'],
-                        'cena' => $silo_master['cena'], 'akcesoria' => $accs_detailed
+                        'kod'       => $silo_code,
+                        'nazwa'     => $final_name,
+                        'cena'      => $silo_master['cena'], // Cena bazowa silosu WRACA DO NORMY
+                        'ladownosc' => $ladownosc,
+                        'akcesoria' => $accs_detailed // Bloczki są teraz tutaj!
                 ];
             }
-        }
-        fclose($handle);
-    }
+        }    }
     $categories_data[$cat['id']] = $silos;
 }
 
@@ -216,8 +290,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                 <tr>
                                     <th style="width: 50px;" class="text-center">#</th>
                                     <th>Model silosu</th>
-                                    <th class="text-end">Cena netto</th>
-                                </tr>
+                                    <th class="text-center">Ładowność*</th> <th class="text-end">Cena netto</th>                                </tr>
                                 </thead>
                                 <tbody id="silos-tbody"></tbody>
                             </table>
@@ -262,11 +335,23 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <div class="col-md-6"><input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
                         <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
                         <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0" style="border-radius:0;">
+                                    <i class="bi bi-tag-fill text-muted"></i>
+                                </span>
+                                <input type="text" name="kod_rabatowy" id="kod_rabatowy"
+                                       class="form-control form-control-lg border-start-0"
+                                       placeholder="Kod rabatowy (opcjonalnie)"
+                                       style="border-radius:0; font-size: 0.9rem; text-transform: uppercase;">
+                            </div>
+                        </div>
 
                         <div class="col-12">
                             <label class="small text-muted mb-1">Skąd dowiedziałeś się o firmie KONSIL?</label>
                             <select name="skad_info" id="skad_info" class="form-select" style="border-radius:0;">
                                 <option value="" selected>-- Wybierz opcję (opcjonalnie) --</option>
+                                <option value="Jestem stałym klientem">Jestem stałym klientem</option>
                                 <option value="Internet (Google/Strona www)">Internet (Google/Strona www)</option>
                                 <option value="Social Media (Facebook)">Social Media (Facebook)</option>
                                 <option value="Polecenie od innego rolnika">Polecenie od innego rolnika</option>
@@ -350,11 +435,11 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
                         <div class="form-check form-switch mb-3 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz">
-                            <label class="form-check-label fw-bold" for="usluga_montaz">Zlecam Montaż</label>
+                            <label class="form-check-label fw-bold" for="usluga_montaz">Dodaj orientacyjną cenę montażu</label>
                         </div>
                         <div class="form-check form-switch mb-4 p-3 bg-light border">
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
-                            <label class="form-check-label fw-bold" for="usluga_transport">Zlecam Transport</label>
+                            <label class="form-check-label fw-bold" for="usluga_transport">Dodaj orientacyjną cenę transportu</label>
                         </div>
 
                         <hr>
@@ -417,6 +502,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     function toggleStep(stepNumber) {
         const setIcon = (id, state) => {
             const icon = document.getElementById(id);
+            if(!icon) return;
             if(state === 'open') { icon.className = "bi bi-chevron-up step-icon text-primary"; }
             if(state === 'done') { icon.className = "bi bi-check2-circle step-icon text-success"; }
             if(state === 'pending') { icon.className = "bi bi-dash step-icon text-muted"; }
@@ -465,7 +551,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             return false;
         } else {
             error.classList.add('d-none');
-            calculateTotal(); // Odśwież payload
+            calculateTotal();
             return true;
         }
     }
@@ -484,22 +570,18 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
     function renderCategories() {
         document.getElementById('categories-container').innerHTML = categories.map(cat => {
-            // Sprawdzamy czy kategoria ma flagę disabled
             const isDisabled = cat.disabled === true;
-
             return `
-            <div class="col-md-3"> <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
+            <div class="col-md-3">
+                <div class="card category-tile h-100 shadow-sm text-center ${isDisabled ? 'disabled' : ''}"
                      onclick="${isDisabled ? '' : `selectCategory('${cat.id}', this)`}">
-
                     ${isDisabled ? '<div class="coming-soon-badge"><i class="bi bi-clock me-1"></i> WKRÓTCE</div>' : ''}
-
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
                         <img src="${cat.img}" alt="${cat.name}" class="category-img" onerror="this.onerror=null; this.src='img/placeholder.png';">
                         <h6 class="fw-bold m-0 mt-2" style="color: var(--main-navy); text-transform:uppercase; font-size: 0.8rem;">${cat.name}</h6>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
         }).join('');
         toggleStep(1);
     }
@@ -509,84 +591,154 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         selectedSilo = null;
         document.querySelectorAll('.category-tile').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
+
         const silos = data[id] || [];
-        document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => `
+
+        document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => {
+            const ladownoscDisplay = s.ladownosc ? `<strong>${s.ladownosc} t</strong>` : '-';
+            return `
             <tr style="cursor: pointer;" onclick="selectSilo(${i})">
-                <td class="text-center"><input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input"></td>
-                <td><div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div><code class="text-muted small">Kod: ${s.kod}</code></td>
+                <td class="text-center">
+                    <input type="radio" name="silo_radio" id="silo_r_${i}" class="form-check-input">
+                </td>
+                <td>
+                    <div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div>
+                    <code class="text-muted small">Kod: ${s.kod}</code>
+                </td>
+                <td class="text-center text-muted">${ladownoscDisplay}</td>
                 <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
+
+        const existingNote = document.getElementById('ladownosc-note');
+        if(!existingNote) {
+            const note = document.createElement('div');
+            note.id = 'ladownosc-note';
+            note.className = 'p-2 text-muted';
+            note.style.fontSize = '0.7rem';
+            note.innerHTML = '* Ładowność obliczona dla pszenicy o gęstości 750 kg/m³.';
+            document.getElementById('step2-content').appendChild(note);
+        }
+
         toggleStep(2);
         calculateTotal();
     };
 
     window.selectSilo = function(index) {
+        // 1. Ustawiamy wybrany silos
         selectedSilo = data[selectedCategory][index];
-        document.querySelectorAll('input[name="silo_radio"]').forEach(r => r.checked = false);
-        document.getElementById('silo_r_' + index).checked = true;
+
+        // 2. Zaznaczamy radio button w tabeli krok wyżej
+        const radios = document.querySelectorAll('input[name="silo_radio"]');
+        if(radios[index]) radios[index].checked = true;
+
+        // 3. Generujemy tabelę akcesoriów
         const tbody = document.getElementById('accessories-tbody');
-        if(selectedSilo.akcesoria.length === 0) {
+
+        if(!selectedSilo.akcesoria || selectedSilo.akcesoria.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
         } else {
-            tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => `
+            tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => {
+                // Logika grup wykluczających
+                const groupAttr = a.group ? `data-group="${a.group}"` : '';
+                const groupClass = a.group ? `acc-grouped` : '';
+
+                return `
                 <tr class="bg-white">
-                    <td class="text-center"><input class="form-check-input acc-checkbox" type="checkbox" value="${i}" style="width:25px; height:25px;"></td>
-                    <td><div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div><code>${a.kod}</code></td>
+                    <td class="text-center">
+                        <input class="form-check-input acc-checkbox ${groupClass}"
+                               type="checkbox"
+                               value="${i}"
+                               ${groupAttr}
+                               style="width:25px; height:25px;">
+                    </td>
+                    <td>
+                        <div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div>
+                        <code>${a.kod}</code>
+                    </td>
                     <td class="fw-bold text-end">${formatPrice(a.cena)} zł</td>
-                </tr>
-             `).join('');
-            document.querySelectorAll('.acc-checkbox').forEach(cb => cb.addEventListener('change', calculateTotal));
+                </tr>`;
+            }).join('');
+
+            // 4. Podpinamy zdarzenia (ważna kolejność!)
+            document.querySelectorAll('.acc-checkbox').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    // Jeśli to checkbox grupowy i został zaznaczony
+                    if (this.classList.contains('acc-grouped') && this.checked) {
+                        const group = this.getAttribute('data-group');
+                        // Odznacz inne z tej samej grupy
+                        document.querySelectorAll(`.acc-grouped[data-group="${group}"]`).forEach(other => {
+                            if (other !== this) other.checked = false;
+                        });
+                    }
+                    // Po każdej zmianie przeliczamy sumę
+                    calculateTotal();
+                });
+            });
         }
+
         toggleStep(3);
         calculateTotal();
     };
 
-    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt'].forEach(id => {
-        document.getElementById(id).addEventListener('change', calculateTotal);
-        if(id === 'silo-qty') document.getElementById(id).addEventListener('input', calculateTotal);
-    });
-
-    function formatPrice(val) { return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function formatPrice(val) {
+        return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
     function calculateTotal() {
         let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0;
+
         if (selectedSilo) {
             totalSiloPrice = selectedSilo.cena;
+            // Sumujemy tylko zaznaczone checkboxy
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
-                totalAccPrice += selectedSilo.akcesoria[cb.value].cena;
+                const accIndex = cb.value;
+                totalAccPrice += selectedSilo.akcesoria[accIndex].cena;
                 accsCount++;
             });
         }
+
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
+
+        // Obliczamy mnożniki za montaż/transport
         let multiplier = 1.0;
         if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
         if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
+
         let finalTotal = baseCost * multiplier;
 
+        // Aktualizacja UI
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
         document.getElementById('totalValue').innerText = formatPrice(finalTotal) + " zł";
+
         let finalTotalGross = finalTotal * 1.23;
         document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
+        // Budowa paczki danych (Payload)
         let payload = {
-            silo: selectedSilo, akcesoria: [], qty: qty, baseCost: baseCost,
+            silo: selectedSilo,
+            akcesoria: [],
+            qty: qty,
+            baseCost: baseCost,
             montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
             transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
             total: finalTotal,
-            totalGross: finalTotal * 1.23,
+            totalGross: finalTotalGross,
             isVat: document.getElementById('klient_vat').checked,
             isRyczalt: document.getElementById('klient_ryczalt').checked,
-            skadInfo: document.getElementById('skad_info').value
+            skadInfo: document.getElementById('skad_info').value,
+            kodRabatowy: document.getElementById('kod_rabatowy').value
         };
+
         if (selectedSilo) {
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
                 payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
             });
         }
+
         document.getElementById('hidden-payload').value = JSON.stringify(payload);
     }
 
@@ -596,12 +748,22 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             return false;
         }
         if (!checkTaxStatus()) {
-            alert("Proszę poprawić status podatkowy - nie można być jednocześnie płatnikiem VAT i ryczałtowcem.");
+            alert("Proszę poprawić status podatkowy.");
             return false;
         }
         return true;
     }
 
+    // Dodanie nasłuchiwaczy zdarzeń
+    ['silo-qty', 'usluga_montaz', 'usluga_transport', 'klient_vat', 'klient_ryczalt', 'kod_rabatowy'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            el.addEventListener('change', calculateTotal);
+            if(id === 'silo-qty' || id === 'kod_rabatowy') el.addEventListener('input', calculateTotal);
+        }
+    });
+
+    // Start aplikacji
     renderCategories();
 </script>
 </body>
