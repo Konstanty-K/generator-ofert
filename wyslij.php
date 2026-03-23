@@ -252,42 +252,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Błąd: {$mail->ErrorInfo}");
         }
 
-        // --- MAIL 2: DO KLIENTA (ROLNIKA) ---
+// --- MAIL 2: DO KLIENTA (ROLNIKA) ---
         if ($firmMailSent) {
             try {
+                require_once 'szablon_maila.php';
+
                 $mail->clearAddresses();
                 if (filter_var($klient['email'], FILTER_VALIDATE_EMAIL)) {
                     $mail->addAddress($klient['email']);
                     $mail->Subject = 'Podsumowanie Twojej konfiguracji silosu - Konsil';
-                    $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px;'>
-                        <h2 style='color: #0b2239;'>Dzień dobry!</h2>
-                        <p>Dziękujemy za skorzystanie z konfiguratora ofert online na stronie 
-                           <a href='https://www.konsil.pl' style='color: #0b2239; font-weight: bold; text-decoration: none;'>www.konsil.pl</a>.
-                        </p>
-                        <p>Otrzymaliśmy Twoje zapytanie dotyczące modelu: <b>" . htmlspecialchars($payload['silo']['nazwa']) . "</b>.</p>
-                        <p>Nasi doradcy przeanalizują Twoją konfigurację i skontaktują się z Tobą wkrótce.</p>
-                        <div style='background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0b2239; margin: 20px 0;'>
-                            <p style='margin: 0; font-weight: bold; color: #0b2239;'>Masz pytania? Zadzwoń do nas:</p>
-                            <p style='margin: 10px 0 0 0; font-size: 1.2rem;'>
-                                <a href='tel:+48523857859' style='color: #d9534f; text-decoration: none; font-weight: bold;'>52 385-78-59</a>
-                            </p>
-                        </div>
-                        <p>Szczegółowe podsumowanie znajdziesz w <b>załączonym pliku PDF</b>.</p>
-                        <hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'>
-                        <p style='font-size: 0.9rem; color: #777;'>
-                            Z poważaniem,<br>
-                            <strong>Zespół P.O.R. KONSIL</strong><br>
-                            ul. Nakielska, Ślesin<br>
-                            <a href='https://www.konsil.pl' style='color: #777;'>www.konsil.pl</a>
-                        </p>
-                    </div>";
+
+                    // Wywołujemy funkcję z szablonu, przekazując dane
+                    $mail->Body = pobierzTrescMaila($klient['nazwa'], $payload['silo']['nazwa']);
 
                     $mail->send();
                     $clientMailSent = true;
                 }
             } catch (\Exception $e) {
                 $clientMailSent = false;
+                // Opcjonalnie logowanie błędu: error_log($e->getMessage());
             }
         }
 
