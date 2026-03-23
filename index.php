@@ -135,79 +135,87 @@ foreach ($categories_config as $cat) {
                 $accs_detailed = []; // Tu będą wszystkie opcje do wyboru
                 $acc_start_idx = 3;
 
-                // --- LOGIKA BLOCZKÓW JAKO OPCJA DO WYBORU ---
+// --- LOGIKA BLOCZKÓW JAKO OPCJA DO WYBORU (Wersja v1.5) ---
+                $accs_detailed = [];
+                $acc_start_idx = 3; // Domyślnie akcesoria od kolumny D
+
                 if ($has_blocks_logic) {
-                    $kod_bloczka = trim($data[3] ?? '');
-                    $ilosc_bloczkow = (int)trim($data[4] ?? 0);
-                    $acc_start_idx = 5;
+                    $raw_bl_val = trim($data[3] ?? '');
+                    $szt_bl = (int)trim($data[4] ?? 0);
+                    $acc_start_idx = 5; // Pomijamy kolumny D i E w głównej pętli
 
-                    if ($kod_bloczka && $ilosc_bloczkow > 0) {
-                        $b_master = $cenyMaster[$kod_bloczka] ?? ['nazwa' => 'Elementy ceramiczne', 'cena' => 0];
-                        $cena_zestawu = $b_master['cena'] * $ilosc_bloczkow;
+                    if ($raw_bl_val && $szt_bl > 0) {
+                        $bl_group = '';
+                        $clean_bl_kod = $raw_bl_val;
 
-                        // Dodajemy bloczki jako PIERWSZE akcesorium na liście
+                        // Obsługa wykluczeń (!) dla bloczków
+                        if (strpos($raw_bl_val, '!') === 0) {
+                            $bl_parts = explode(':', substr($raw_bl_val, 1));
+                            if (count($bl_parts) > 1) {
+                                $bl_group = trim($bl_parts[0]);
+                                $clean_bl_kod = trim($bl_parts[1]);
+                            }
+                        }
+
+                        $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => 'Elementy ceramiczne', 'cena' => 0];
                         $accs_detailed[] = [
-                                'kod' => $kod_bloczka,
-                                'nazwa' => $b_master['nazwa'] . " (komplet $ilosc_bloczkow szt.)",
-                                'cena' => $cena_zestawu,
-                                'is_blocks' => true // Flaga dla nas
+                                'kod'   => $clean_bl_kod,
+                                'nazwa' => $m['nazwa'] . " (komplet $szt_bl szt.)",
+                                'cena'  => $m['cena'] * $szt_bl,
+                                'group' => $bl_group
                         ];
                     }
                 }
 
-                // --- POBIERANIE RESZTY AKCESORIÓW ---
-                $last_acc_key = -1; // Śledzimy ostatni dodany element, aby móc do niego "doklejać"
-
+                // --- POBIERANIE RESZTY AKCESORIÓW (z obsługą scalania +) ---
                 for ($i = $acc_start_idx; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
 
-                        // Czy komórka zaczyna się od '+', co oznacza łączenie z poprzednią kolumną?
+                        // Czy komórka zaczyna się od '+', co oznacza łączenie z poprzednią?
                         $is_merge_with_prev = (strpos($val, '+') === 0);
-                        $clean_val = $is_merge_with_prev ? substr($val, 1) : $val;
+                        $clean_cell_val = $is_merge_with_prev ? substr($val, 1) : $val;
+
+                        // Rozbijamy pakiety wewnątrz jednej komórki (KOD1+KOD2)
+                        $bundle_parts = explode('+', $clean_cell_val);
+                        $temp_names = []; $temp_codes = []; $temp_price = 0;
                         $group_id = '';
-
-                        // Czy mamy grupę wykluczającą '!' ?
-                        if (strpos($clean_val, '!') === 0) {
-                            $parts = explode(':', substr($clean_val, 1));
-                            if (count($parts) > 1) {
-                                $group_id = trim($parts[0]);
-                                $clean_val = trim($parts[1]);
-                            }
-                        }
-
-                        // Rozbijamy zawartość komórki po '+' (pakiety wewnątrz jednej kratki)
-                        $bundle_parts = explode('+', $clean_val);
-                        $total_acc_price = 0;
-                        $combined_names = [];
-                        $combined_codes = [];
 
                         foreach ($bundle_parts as $part) {
                             $code = trim($part);
                             if (!$code) continue;
 
+                            // Obsługa wykluczeń (!)
+                            if (strpos($code, '!') === 0) {
+                                $g_data = explode(':', substr($code, 1));
+                                if (count($g_data) > 1) {
+                                    $group_id = trim($g_data[0]);
+                                    $code = trim($g_data[1]);
+                                }
+                            }
+
                             $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
-                            $total_acc_price += $master['cena'];
-                            $combined_names[] = $master['nazwa'];
-                            $combined_codes[] = $code;
+                            $temp_price += $master['cena'];
+                            $temp_names[] = $master['nazwa'];
+                            $temp_codes[] = $code;
                         }
 
-                        if ($is_merge_with_prev && $last_acc_key >= 0) {
-                            // ŁĄCZYMY Z POPRZEDNIĄ KOLUMNĄ
-                            $accs_detailed[$last_acc_key]['kod']   .= ' + ' . implode(' + ', $combined_codes);
-                            $accs_detailed[$last_acc_key]['nazwa'] .= ' + ' . implode(' + ', $combined_names);
-                            $accs_detailed[$last_acc_key]['cena']  += $total_acc_price;
-                            // Jeśli nowa kolumna niesie ze sobą grupę, przypisz ją do całości
-                            if ($group_id) $accs_detailed[$last_acc_key]['group'] = $group_id;
+                        $last_idx = count($accs_detailed) - 1;
+
+                        if ($is_merge_with_prev && $last_idx >= 0) {
+                            // SCALAMY Z POPRZEDNIĄ POZYCJĄ
+                            $accs_detailed[$last_idx]['kod']   .= ' + ' . implode(' + ', $temp_codes);
+                            $accs_detailed[$last_idx]['nazwa'] .= ' + ' . implode(' + ', $temp_names);
+                            $accs_detailed[$last_idx]['cena']  += $temp_price;
+                            if ($group_id) $accs_detailed[$last_idx]['group'] = $group_id;
                         } else {
-                            // DODAJEMY JAKO NOWĄ POZYCJĘ
+                            // NOWA POZYCJA W TABELI
                             $accs_detailed[] = [
-                                    'kod'   => implode(' + ', $combined_codes),
-                                    'nazwa' => implode(' + ', $combined_names),
-                                    'cena'  => $total_acc_price,
+                                    'kod'   => implode(' + ', $temp_codes),
+                                    'nazwa' => implode(' + ', $temp_names),
+                                    'cena'  => $temp_price,
                                     'group' => $group_id
                             ];
-                            $last_acc_key = count($accs_detailed) - 1;
                         }
                     }
                 }
