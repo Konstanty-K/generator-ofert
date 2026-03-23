@@ -110,7 +110,7 @@ $categories_config = [
         ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'disabled' => true],
         ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
         ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'disabled' => true],
-        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => '', 'img' => 'img/cat_paszowe.png', 'disabled' => true]
+        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => 'silosy paszowe.csv', 'img' => 'img/cat_paszowe.png', 'disabled' => false]
 ];
 
 $categories_data = [];
