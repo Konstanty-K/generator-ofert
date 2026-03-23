@@ -207,6 +207,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dompdf->render();
 
         $pdfOutput = $dompdf->output();
+
+        //if (!$pdfOutput) {
+        //    die("Błąd: Wygenerowany PDF jest pusty.");
+        //}
     } catch (\Exception $e) {
         die("Błąd generowania PDF: " . $e->getMessage());
     }
