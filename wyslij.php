@@ -229,7 +229,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // --- MAIL 1: DO FIRMY ---
         try {
-            $mail->setFrom($config['email_from'], 'Konfigurator Konsil');
+            $mail->setFrom($config['email_from'], 'SILOSY KONSIL KONFIGURATOR WYCENY');
             $mail->addAddress($config['email_to']);
             $mail->addReplyTo($klient['email'], $klient['nazwa']);
 
