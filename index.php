@@ -106,11 +106,11 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
 
 // 2. KATEGORIE
 $categories_config = [
-        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'silosy lejowe.csv', 'img' => 'img/cat_lejowe.png'],
-        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'disabled' => true],
-        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png'],
-        ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'disabled' => true],
-        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => 'silosy paszowe.csv', 'img' => 'img/cat_paszowe.png', 'disabled' => false]
+        ['id' => 'lejowe', 'name' => 'Silosy Lejowe', 'file' => 'silosy lejowe.csv', 'img' => 'img/cat_lejowe.png', 'info' => 'pszenicy o gęstości 750 kg/m³'],
+        ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'info' => 'pszenicy o gęstości 750 kg/m³', 'disabled' => true],
+        ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png', 'info' => 'pszenicy o gęstości 750 kg/m³'],
+        ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'info' => 'pszenicy o gęstości 750 kg/m³', 'disabled' => true],
+        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => 'silosy paszowe.csv', 'img' => 'img/cat_paszowe.png', 'info' => 'paszy o gęstości 650 kg/m³', 'disabled' => false]
 ];
 
 $categories_data = [];
@@ -610,15 +610,20 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             </tr>`;
         }).join('');
 
-        const existingNote = document.getElementById('ladownosc-note');
-        if(!existingNote) {
-            const note = document.createElement('div');
+        // Szukamy danych o wybranej kategorii, żeby pobrać przypis
+        const catInfo = categories.find(c => c.id === id);
+        const opisGestosci = catInfo ? catInfo.info : 'surowca';
+
+        // AKTUALIZACJA PRZYPISU POD TABELĄ
+        let note = document.getElementById('ladownosc-note');
+        if(!note) {
+            note = document.createElement('div');
             note.id = 'ladownosc-note';
             note.className = 'p-2 text-muted';
             note.style.fontSize = '0.7rem';
-            note.innerHTML = '* Ładowność obliczona dla pszenicy o gęstości 750 kg/m³.';
             document.getElementById('step2-content').appendChild(note);
         }
+        note.innerHTML = `* Ładowność obliczona dla ${opisGestosci}.`;
 
         toggleStep(2);
         calculateTotal();
@@ -730,7 +735,8 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
             isVat: document.getElementById('klient_vat').checked,
             isRyczalt: document.getElementById('klient_ryczalt').checked,
             skadInfo: document.getElementById('skad_info').value,
-            kodRabatowy: document.getElementById('kod_rabatowy').value
+            kodRabatowy: document.getElementById('kod_rabatowy').value,
+            infoGestosc: categories.find(c => c.id === selectedCategory).info
         };
 
         if (selectedSilo) {

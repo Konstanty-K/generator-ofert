@@ -166,9 +166,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <p>' . nl2br(htmlspecialchars($klient['uwagi'] ?: 'Brak dodatkowych uwag.')) . '</p>
 
     <div class="footer">
-        ' . (!empty($payload['silo']['ladownosc']) ? '
+' . (!empty($payload['silo']['ladownosc']) ? '
         <p style="font-size: 8px; text-align: left; color: #777; margin-bottom: 5px;">
-            * Ładowność została obliczona dla pszenicy o gęstości 750 kg/m³. Przedstawiona wartość ma charakter orientacyjny.
+            * Ładowność została obliczona dla ' . ($payload['infoGestosc'] ?? 'surowca') . '. Wartość orientacyjna.
         </p>' : '') . '
         
         ' . (!empty($payload['kodRabatowy']) ? '
