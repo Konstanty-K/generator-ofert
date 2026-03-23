@@ -248,7 +248,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             $mail->Body .= "<br>PDF w załączniku.";
 
-            $mail->addStringAttachment($pdfOutput, 'Oferta_Konsil_' . date('Ymd_Hi') . '.pdf');
+            $mail->addStringAttachment($pdfOutput, 'Wycena_Konsil_' . date('Ymd_Hi') . '.pdf');
 
             $mail->send();
             $firmMailSent = true; // WAŻNE: Aktywujemy status wysyłki
