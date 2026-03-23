@@ -1,0 +1,42 @@
+# ----------------------------------------------------------------------
+# Tarcza Bezpieczeństwa dla Generatora Ofert
+# ----------------------------------------------------------------------
+
+# 1. Zakaz podglądu zawartości folderów (Directory Listing)
+# Jeśli ktoś wejdzie na konsil.pl/generator-ofert/vendor/, zobaczy błąd 403 zamiast listy plików.
+Options -Indexes
+
+# 2. Blokada dostępu do plików z danymi i kopii zapasowych
+# Chroni pliki CSV, bazy SQL, logi oraz pliki tymczasowe edytorów.
+<FilesMatch "\.(csv|sql|log|bak|env|ini|sh|zip|rar|7z|old|txt|pdf)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. Wyjątek: Pozwól na dostęp do wygenerowanych ofert (jeśli zapisujesz je w tym samym folderze)
+# Jeśli chcesz, by klient mógł pobrać gotowy PDF, odkomentuj poniższe linie,
+# zmieniając nazwę folderu na ten, w którym lądują PDFy.
+# <Directory "sciezka/do/pdf">
+#    <FilesMatch "\.pdf$">
+#        Allow from all
+#    </FilesMatch>
+# </Directory>
+
+# 4. Ochrona plików konfiguracyjnych PHP
+# Nikt nie będzie mógł podejrzeć kodu źródłowego config.php przez przeglądarkę.
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+<Files "database.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# 5. Blokada dostępu do folderu .git (jeśli tam jest)
+RedirectMatch 404 /\.git
+
+# 6. Wymuszenie HTTPS (opcjonalne, ale zalecane)
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

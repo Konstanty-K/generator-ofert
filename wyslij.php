@@ -206,7 +206,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $pdfOutput = $dompdf->output();
+        $pdfOutput = $dompdf->output('S');
     } catch (\Exception $e) {
         die("Błąd generowania PDF: " . $e->getMessage());
     }
