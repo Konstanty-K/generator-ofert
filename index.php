@@ -343,15 +343,37 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         <div class="col-md-6"><input type="text" name="klient_nip" class="form-control form-control-lg" placeholder="NIP (opcjonalnie)" style="border-radius:0;"></div>
                         <div class="col-md-6"><input type="tel" name="klient_telefon" class="form-control form-control-lg" placeholder="Numer telefonu" style="border-radius:0;" required></div>
                         <div class="col-12"><textarea name="uwagi" class="form-control" rows="3" placeholder="Dodatkowe uwagi do oferty..." style="border-radius:0;"></textarea></div>
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0" style="border-radius:0;">
-                                    <i class="bi bi-tag-fill text-muted"></i>
-                                </span>
-                                <input type="text" name="kod_rabatowy" id="kod_rabatowy"
-                                       class="form-control form-control-lg border-start-0"
-                                       placeholder="Kod rabatowy (opcjonalnie)"
-                                       style="border-radius:0; font-size: 0.9rem; text-transform: uppercase;">
+                        <div class="col-12 mt-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_vat" id="klient_vat" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_vat">Jestem płatnikiem VAT</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input tax-status" type="checkbox" name="klient_ryczalt" id="klient_ryczalt" value="1" onchange="checkTaxStatus()">
+                                        <label class="form-check-label small text-muted" for="klient_ryczalt">Jestem na ryczałcie</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0" style="border-radius:0;">
+                                        <i class="bi bi-tag-fill text-muted"></i>
+                                        </span>
+                                        <input type="text" name="kod_rabatowy" id="kod_rabatowy"
+                                               class="form-control form-control-lg border-start-0"
+                                               placeholder="KOD RABATOWY (OPCJONALNIE)"
+                                               style="border-radius:0; font-size: 0.9rem; text-transform: uppercase;">
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div id="tax-error" class="text-danger small d-none mt-1 fw-bold">Błąd: Nie można wybrać obu statusów jednocześnie.</div>
+                                </div>
                             </div>
                         </div>
 
@@ -368,24 +390,6 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                 <option value="Widziałem silosy u sąsiada">Widziałem silosy u sąsiada</option>
                                 <option value="Inne">Inne</option>
                             </select>
-                        </div>
-
-                        <div class="col-12 mt-2">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input tax-status" type="checkbox" name="klient_vat" id="klient_vat" value="1" onchange="checkTaxStatus()">
-                                        <label class="form-check-label small text-muted" for="klient_vat">Jestem płatnikiem VAT</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input tax-status" type="checkbox" name="klient_ryczalt" id="klient_ryczalt" value="1" onchange="checkTaxStatus()">
-                                        <label class="form-check-label small text-muted" for="klient_ryczalt">Rolnik ryczałtowy</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tax-error" class="text-danger small d-none mt-1 fw-bold">Błąd: Nie można wybrać obu statusów jednocześnie.</div>
                         </div>
 
                         <div class="col-12">
