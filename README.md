@@ -7,7 +7,7 @@ Profesjonalne narzędzie typu **Configure, Price, Quote (CPQ)** zaprojektowane d
 - **Dynamiczne Parsowanie Logiki (CSV Engine):** System zarządza bazą produktów i relacjami między nimi bezpośrednio z plików CSV, co pozwala na aktualizację cennika bez ingerencji w kod.
 - **Autorska Logika Relacji:** - `+` (Operator Pakietów): Łączenie wielu produktów w jedną pozycję handlową z sumowaniem cen.
   - `!` (Operator Wykluczeń): Zarządzanie grupami produktów wzajemnie się wykluczających (np. różne typy napędów lub podłóg).
-- **Automatyzacja PDF:** Generowanie profesjonalnych zestawień ofertowych przy użyciu biblioteki Dompdf (z uwzględnieniem tonacji pszenicy/paszy, kodów rabatowych i klauzul prawnych).
+- **Automatyzacja PDF:** Generowanie profesjonalnych zestawień ofertowych przy użyciu biblioteki Dompdf (z uwzględnieniem tonażu pszenicy/paszy, kodów rabatowych i klauzul prawnych).
 - **System Powiadomień:** Integracja z PHPMailer do automatycznego przesyłania ofert do klienta oraz powiadomień dla działu handlowego.
 - **Interfejs Responsive Design:** UI zbudowany na Bootstrap 5, zoptymalizowany pod kątem pracy rolnika w terenie (urządzenia mobilne).
 
