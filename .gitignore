@@ -1,6 +1,7 @@
 # --- ŚRODOWISKO I KONFIGURACJA ---
 # Nigdy nie wysyłaj haseł do Gita!
 config.php
+env_loader.php
 .env
 php.ini
 
