@@ -89,6 +89,13 @@
 <body>
 
 <?php
+
+require_once 'env_loader.php';
+loadEnv(__DIR__ . '/.env');
+
+// Wyświetl nakładkę "W budowie" jeśli tryb jest włączony
+require_once 'maintenance.php';
+
 // 1. DANE MASTER
 $cenyMaster = [];
 if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
