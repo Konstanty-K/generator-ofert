@@ -108,7 +108,7 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
         if(count($data) > 39) {
             $kod = trim($data[0]);
             $nazwa = trim($data[1]);
-            $cena = (float)str_replace(',', '.', trim($data[39]));
+            $cena = (float)str_replace(',', '.', trim($data[41]));
             $cenyMaster[$kod] = ['nazwa' => $nazwa, 'cena' => $cena];
         }
     }
