@@ -105,7 +105,7 @@ $cenyMaster = [];
 if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
     fgetcsv($handle);
     while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
-        if(count($data) > 39) {
+        if(count($data) > 41) {
             $kod = trim($data[0]);
             $nazwa = trim($data[1]);
             $cena = (float)str_replace(',', '.', trim($data[41]));
