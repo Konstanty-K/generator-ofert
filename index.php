@@ -98,7 +98,7 @@ $debug_mode = $is_local;
 require_once 'env_loader.php';
 loadEnv(__DIR__ . '/.env');
 
-if(!$debug_mode or $debug_mode) require_once 'maintenance.php'; // Wyświetl nakładkę "W budowie" jeśli tryb jest włączony
+#if(!$debug_mode) require_once 'maintenance.php'; // Wyświetl nakładkę "W budowie" jeśli tryb jest włączony
 
 // 1. DANE MASTER
 $cenyMaster = [];
