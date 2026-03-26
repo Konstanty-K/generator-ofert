@@ -90,11 +90,15 @@
 
 <?php
 
+$is_local = ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['HTTP_HOST'] === 'localhost');
+
+// Definiujemy tryb debugowania (możesz też ustawić to ręcznie na true/false)
+$debug_mode = $is_local;
+
 require_once 'env_loader.php';
 loadEnv(__DIR__ . '/.env');
 
-// Wyświetl nakładkę "W budowie" jeśli tryb jest włączony
-require_once 'maintenance.php';
+if(!$debug_mode or $debug_mode) require_once 'maintenance.php'; // Wyświetl nakładkę "W budowie" jeśli tryb jest włączony
 
 // 1. DANE MASTER
 $cenyMaster = [];
