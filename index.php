@@ -174,43 +174,82 @@ foreach ($categories_config as $cat) {
                 $custom_desc = trim($data[1] ?? '');
                 $ladownosc = trim($data[2] ?? '');
 
-                $accs_detailed = []; // Tu będą wszystkie opcje do wyboru
-                $acc_start_idx = 3;
-
-// --- LOGIKA BLOCZKÓW (v1.6 - Obsługa $, ! oraz mnożnika) ---
                 $accs_detailed = [];
-                $acc_start_idx = 3;
+                $acc_start_idx = 3; // Zaczynamy czytać akcesoria od kolumny D
 
-                if ($has_blocks_logic) {
-                    $raw_bl_val = trim($data[3] ?? '');
-                    $szt_bl = (int)trim($data[4] ?? 0);
-                    $acc_start_idx = 5;
+                // --- ZUNIFIKOWANY SILNIK AKCESORIÓW ($, +, !, *) ---
+                for ($i = $acc_start_idx; $i < count($data); $i++) {
+                    $val = trim($data[$i] ?? '');
+                    if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
 
-                    if ($raw_bl_val && $szt_bl > 0) {
-                        // 1. Sprawdzamy czy wycena na zapytanie ($)
-                        $is_quote_bl = (strpos($raw_bl_val, '$') === 0);
-                        $proc_bl = $is_quote_bl ? trim(substr($raw_bl_val, 1)) : $raw_bl_val;
+                        // 1. Wycena na zapytanie ($)
+                        $is_quote = (strpos($val, '$') === 0);
+                        $proc_val = $is_quote ? trim(substr($val, 1)) : $val;
 
-                        $bl_group = '';
-                        $clean_bl_kod = $proc_bl;
+                        // 2. Scalanie pakietów (+)
+                        $is_merge = (strpos($proc_val, '+') === 0);
+                        $clean_cell = $is_merge ? trim(substr($proc_val, 1)) : $proc_val;
 
-                        // 2. Sprawdzamy grupę wykluczającą (!)
-                        if (strpos($proc_bl, '!') === 0) {
-                            $bl_parts = explode(':', substr($proc_bl, 1));
-                            if (count($bl_parts) > 1) {
-                                $bl_group = trim($bl_parts[0]);
-                                $clean_bl_kod = trim($bl_parts[1]);
+                        $bundle_parts = explode('+', $clean_cell);
+                        $temp_names = []; $temp_codes = []; $temp_price = 0;
+                        $group_id = '';
+
+                        foreach ($bundle_parts as $part) {
+                            $code = trim($part);
+                            $sztuki = 1; // Domyślnie 1 sztuka
+
+                            // 3. Mnożnik (*) - Szukamy '* LICZBA' tylko na końcu ciągu!
+                            if (preg_match('/\*?\s*\*(\d+)\s*$/', $code, $matches)) {
+                                $sztuki = (int)$matches[1];
+                                // Usuwamy mnożnik z kodu (np. z "KOD * 15" zostaje "KOD")
+                                $code = trim(preg_replace('/\s*\*(\d+)\s*$/', '', $code));
                             }
+
+                            // 4. Grupa wykluczająca (!)
+                            if (strpos($code, '!') === 0) {
+                                $g_data = explode(':', substr($code, 1));
+                                if (count($g_data) > 1) {
+                                    $group_id = trim($g_data[0]);
+                                    $code = trim($g_data[1]);
+                                }
+                            }
+
+                            // 5. Pobranie danych z Comarcha
+                            $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
+                            $temp_price += ($master['cena'] * $sztuki);
+
+                            // 6. Słownik opisów własnych (opisy.csv)
+                            $nazwaWyswietlana = $slownikOpisow[$code]['nazwa'] ?? $master['nazwa'];
+                            if ($sztuki > 1) {
+                                $nazwaWyswietlana .= " (komplet $sztuki szt.)";
+                            }
+
+                            $opisDodatkowy = $slownikOpisow[$code]['opis'] ?? '';
+                            if (!empty($opisDodatkowy)) {
+                                $nazwaWyswietlana .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
+                            }
+
+                            $temp_names[] = $nazwaWyswietlana;
+                            $temp_codes[] = $code;
                         }
 
-                        $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => $clean_bl_kod, 'cena' => 0];
-                        $accs_detailed[] = [
-                                'kod'      => $clean_bl_kod,
-                                'nazwa'    => $m['nazwa'] . " (komplet $szt_bl szt.)",
-                                'cena'     => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
-                                'group'    => $bl_group,
-                                'is_quote' => $is_quote_bl
-                        ];
+                        $last_idx = count($accs_detailed) - 1;
+
+                        if ($is_merge && $last_idx >= 0) {
+                            $accs_detailed[$last_idx]['kod']   .= ' + ' . implode(' + ', $temp_codes);
+                            $accs_detailed[$last_idx]['nazwa'] .= ' + ' . implode(' + ', $temp_names);
+                            $accs_detailed[$last_idx]['cena']  += $is_quote ? 0 : $temp_price;
+                            if ($group_id) $accs_detailed[$last_idx]['group'] = $group_id;
+                            if ($is_quote) $accs_detailed[$last_idx]['is_quote'] = true;
+                        } else {
+                            $accs_detailed[] = [
+                                    'kod'      => implode(' + ', $temp_codes),
+                                    'nazwa'    => implode(' + ', $temp_names),
+                                    'cena'     => $is_quote ? 0 : $temp_price,
+                                    'group'    => $group_id,
+                                    'is_quote' => $is_quote
+                            ];
+                        }
                     }
                 }
 
