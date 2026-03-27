@@ -585,6 +585,10 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                             inż. arch.  Konstanty Kaszubski
                         </a>
                     </p>
+                    <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
+                        Wersja: <span class="fw-bold text-dark">0.9.0 (Beta)</span> |
+                        <span class="fw-bold text-dark">27.03.2026</span>
+                    </p>
                 </div>
             </div>
         </footer>
