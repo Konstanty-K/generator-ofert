@@ -11,6 +11,48 @@ error_reporting(E_ALL);
 
 $config = require 'config.php';
 require 'vendor/autoload.php';
+
+// ==========================================
+// 1. OBSŁUGA GET - WIDOK SUKCESU (Wzorzec PRG)
+// ==========================================
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['status']) && $_GET['status'] === 'success') {
+    $klientEmail = htmlspecialchars($_GET['email'] ?? '');
+    ?>
+    <!DOCTYPE html>
+    <html lang="pl">
+    <head>
+        <meta charset="UTF-8">
+        <title>Wysłano zapytanie - Konsil</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+        <style>
+            body { background-color: #f4f7f6; height: 100vh; display: flex; align-items: center; justify-content: center; }
+            .success-card { background: white; padding: 40px; border-top: 5px solid #0b2239; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 500px; text-align: center; }
+        </style>
+    </head>
+    <body>
+    <div class="success-card">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+        <h2 class="mt-3 fw-bold" style="color: #0b2239;">ZAPYTANIE WYSŁANE</h2>
+        <p class="text-muted">Dziękujemy! Twoja konfiguracja została przesłana do biura Konsil.</p>
+        <?php if(!empty($klientEmail)): ?>
+            <p class="small">Kopię wyceny wysłaliśmy na adres: <b><?php echo $klientEmail; ?></b></p>
+        <?php endif; ?>
+        <hr>
+        <a href="index.php" class="btn btn-dark w-100 py-3" style="background:#0b2239; border-radius:0;">POWRÓT DO KONFIGURATORA</a>
+    </div>
+    </body>
+    </html>
+    <?php
+    exit; // Zatrzymujemy dalsze wykonywanie skryptu!
+}
+
+// Jeśli ktoś wejdzie na wyslij.php bez POST i bez GET z sukcesem, odrzucamy go do index.php
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    header("Location: index.php");
+    exit;
+}
+
 if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
     die("BŁĄD: Nie znaleziono pliku autoload.php w " . __DIR__ . "/vendor/");
 } #else {
@@ -278,40 +320,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
-        // --- KROK 5: WIDOK SUKCESU ---
-        ?>
-        <!DOCTYPE html>
-        <html lang="pl">
-        <head>
-            <meta charset="UTF-8">
-            <title>Status zapytania - Konsil</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-            <style>
-                body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; }
-                .success-card { background: white; padding: 50px; border-top: 5px solid #0b2239; text-align: center; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-            </style>
-        </head>
-        <body>
-        <div class="success-card">
-            <?php if ($clientMailSent): ?>
-                <i class="bi bi-check2-circle text-success" style="font-size: 5rem;"></i>
-                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">WYSŁANO!</h1>
-                <p class="lead text-muted">Zapytanie trafiło do naszych doradców. Kopię wysłaliśmy na Twój e-mail.</p>
-            <?php else: ?>
-                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
-                <h1 class="mt-4" style="color: #0b2239; font-weight: bold;">PRZYJĘTO ZAPYTANIE</h1>
-                <p class="lead text-muted">Twoja wycena została zapisana. Skontaktujemy się telefonicznie.</p>
-                <div class="alert alert-warning small text-start">
-                    Błąd dostarczenia kopii na adres: <?php echo htmlspecialchars($klient['email']); ?>. Sprawdź poprawność maila.
-                </div>
-            <?php endif; ?>
-            <hr class="my-4">
-            <a href="index.php" class="btn btn-dark btn-lg px-5" style="background-color: #0b2239; border-radius: 0;">Powrót</a>
-        </div>
-        </body>
-        </html>
-        <?php
+        // ==========================================
+        // PRZEKIEROWANIE PRG (Zapobiega dublowaniu maili przy odświeżaniu/wstecz)
+        // ==========================================
+        $emailDoPrzekazania = $clientMailSent ? $klient['email'] : '';
+        header("Location: wyslij.php?status=success&email=" . urlencode($emailDoPrzekazania));
+        exit;
 
     } catch (Exception $e) {
         die("Błąd krytyczny PHPMailer: {$mail->ErrorInfo}");
