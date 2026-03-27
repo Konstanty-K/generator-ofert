@@ -1,3 +1,6 @@
+--- STRONA W BUDOWIE ---
+Prezentowane towary nie stanowią oferty w rozumieniu przepisów Kodeksu cywilnego --- STRONA W BUDOWIE ---
+
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -152,7 +155,7 @@ $categories_config = [
         ['id' => 'lejowe_faliste', 'name' => 'Silosy Lejowe Faliste', 'file' => 'WYCENA- ONLINE - silosy lejowe faliste.csv', 'img' => 'img/cat_lejowe_faliste.png', 'info' => 'pszenicy o gęstości 750 kg/m³', 'disabled' => true],
         ['id' => 'plaskodenne', 'name' => 'Silosy Płaskodenne', 'file' => 'silosy płaskodenne.csv', 'img' => 'img/cat_plaskodenne.png', 'info' => 'pszenicy o gęstości 750 kg/m³'],
         ['id' => 'plaskodenne_faliste', 'name' => 'Silosy Płaskodenne Faliste', 'file' => 'WYCENA- ONLINE - silosy płaskodenne faliste.csv', 'img' => 'img/cat_plaskodenne_faliste.png', 'info' => 'pszenicy o gęstości 750 kg/m³', 'disabled' => true],
-        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => 'silosy paszowe.csv', 'img' => 'img/cat_paszowe.png', 'info' => 'paszy o gęstości 650 kg/m³', 'disabled' => false]
+        ['id' => 'paszowe', 'name' => 'Silosy Paszowe', 'file' => 'silosy paszowe.csv', 'img' => 'img/cat_paszowe.png', 'info' => 'paszy o gęstości 650 kg/m³', 'disabled' => true]
 ];
 
 $categories_data = [];
@@ -188,7 +191,7 @@ foreach ($categories_config as $cat) {
                         // NIEZAWODNE ODCINANIE MNOŻNIKA Z KODU BAZOWEGO
                         if (strpos($raw_bl_val, '*') !== false) {
                             $bl_parts_star = explode('*', $raw_bl_val);
-                            $raw_bl_val = trim($bl_parts_star[0]); // Zostawia samo "ELEM.CERAM."
+                            $raw_bl_val = trim($bl_parts_star[0]);
                         }
 
                         $is_quote_bl = (strpos($raw_bl_val, '$') === 0);
@@ -207,7 +210,10 @@ foreach ($categories_config as $cat) {
 
                         $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => $clean_bl_kod, 'cena' => 0];
 
-                        $nazwaWyswietlana = $slownikOpisow[$clean_bl_kod]['nazwa'] ?? $m['nazwa'];
+                        // [POPRAWKA] - OCHRONA PRZED PUSTĄ NAZWĄ W SŁOWNIKU
+                        $nazwaWlasna = trim($slownikOpisow[$clean_bl_kod]['nazwa'] ?? '');
+                        $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $m['nazwa'];
+
                         $nazwaWyswietlana .= " (komplet $szt_bl szt.)";
                         $opisDodatkowy = $slownikOpisow[$clean_bl_kod]['opis'] ?? '';
 
@@ -215,14 +221,13 @@ foreach ($categories_config as $cat) {
                             $nazwaWyswietlana .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
                         }
 
-                        // W szarym polu będzie np. "ELEM.CERAM. x28"
                         $kodDoWyswietlenia = $szt_bl > 1 ? $clean_bl_kod . " x" . $szt_bl : $clean_bl_kod;
 
                         $accs_detailed[] = [
-                                'kod'      => $kodDoWyswietlenia,
-                                'nazwa'    => $nazwaWyswietlana,
-                                'cena'     => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
-                                'group'    => $bl_group,
+                                'kod' => $kodDoWyswietlenia,
+                                'nazwa' => $nazwaWyswietlana,
+                                'cena' => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
+                                'group' => $bl_group,
                                 'is_quote' => $is_quote_bl
                         ];
                     }
@@ -240,21 +245,22 @@ foreach ($categories_config as $cat) {
                         $clean_cell = $is_merge ? trim(substr($proc_val, 1)) : $proc_val;
 
                         $bundle_parts = explode('+', $clean_cell);
-                        $temp_names = []; $temp_codes = []; $temp_price = 0;
+                        $temp_names = [];
+                        $temp_codes = [];
+                        $temp_price = 0;
                         $group_id = '';
 
                         foreach ($bundle_parts as $part) {
                             $code = trim($part);
                             $sztuki = 1;
 
-                            // Niezawodne cięcie mnożnika w nowym systemie
                             if (strpos($code, '*') !== false) {
                                 $star_parts = explode('*', $code);
                                 $potencjalne_sztuki = (int)trim(end($star_parts));
                                 if ($potencjalne_sztuki > 0) {
                                     $sztuki = $potencjalne_sztuki;
-                                    array_pop($star_parts); // Usuwamy liczbę z tablicy
-                                    $code = trim(implode('*', $star_parts)); // Zostawiamy czysty kod
+                                    array_pop($star_parts);
+                                    $code = trim(implode('*', $star_parts));
                                 }
                             }
 
@@ -269,7 +275,10 @@ foreach ($categories_config as $cat) {
                             $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
                             $temp_price += ($master['cena'] * $sztuki);
 
-                            $nazwaWyswietlana = $slownikOpisow[$code]['nazwa'] ?? $master['nazwa'];
+                            // [POPRAWKA] - OCHRONA PRZED PUSTĄ NAZWĄ W SŁOWNIKU
+                            $nazwaWlasna = trim($slownikOpisow[$code]['nazwa'] ?? '');
+                            $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $master['nazwa'];
+
                             if ($sztuki > 1) {
                                 $nazwaWyswietlana .= " (komplet $sztuki szt.)";
                             }
@@ -280,25 +289,23 @@ foreach ($categories_config as $cat) {
                             }
 
                             $temp_names[] = $nazwaWyswietlana;
-
-                            // Transformacja gwiazdki na "x" (np. KOD x28)
                             $temp_codes[] = $sztuki > 1 ? $code . " x" . $sztuki : $code;
                         }
 
                         $last_idx = count($accs_detailed) - 1;
 
                         if ($is_merge && $last_idx >= 0) {
-                            $accs_detailed[$last_idx]['kod']   .= ' + ' . implode(' + ', $temp_codes);
+                            $accs_detailed[$last_idx]['kod'] .= ' + ' . implode(' + ', $temp_codes);
                             $accs_detailed[$last_idx]['nazwa'] .= ' + ' . implode(' + ', $temp_names);
-                            $accs_detailed[$last_idx]['cena']  += $is_quote ? 0 : $temp_price;
+                            $accs_detailed[$last_idx]['cena'] += $is_quote ? 0 : $temp_price;
                             if ($group_id) $accs_detailed[$last_idx]['group'] = $group_id;
                             if ($is_quote) $accs_detailed[$last_idx]['is_quote'] = true;
                         } else {
                             $accs_detailed[] = [
-                                    'kod'      => implode(' + ', $temp_codes),
-                                    'nazwa'    => implode(' + ', $temp_names),
-                                    'cena'     => $is_quote ? 0 : $temp_price,
-                                    'group'    => $group_id,
+                                    'kod' => implode(' + ', $temp_codes),
+                                    'nazwa' => implode(' + ', $temp_names),
+                                    'cena' => $is_quote ? 0 : $temp_price,
+                                    'group' => $group_id,
                                     'is_quote' => $is_quote
                             ];
                         }
@@ -308,14 +315,15 @@ foreach ($categories_config as $cat) {
                 $final_name = !empty($custom_desc) ? $custom_desc : $silo_master['nazwa'];
 
                 $silos[] = [
-                        'kod'       => $silo_code,
-                        'nazwa'     => $final_name,
-                        'cena'      => $silo_master['cena'], // Cena bazowa silosu WRACA DO NORMY
+                        'kod' => $silo_code,
+                        'nazwa' => $final_name,
+                        'cena' => $silo_master['cena'], // Cena bazowa silosu WRACA DO NORMY
                         'ladownosc' => $ladownosc,
                         'akcesoria' => $accs_detailed // Bloczki są teraz tutaj!
                 ];
             }
-        }    }
+        }
+    }
     $categories_data[$cat['id']] = $silos;
 }
 
@@ -586,7 +594,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </a>
                     </p>
                     <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
-                        Wersja: <span class="fw-bold text-dark">0.9.0 (Beta)</span> |
+                        Wersja: <span class="fw-bold text-dark">0.9.2 (beta)</span> |
                         <span class="fw-bold text-dark">27.03.2026</span>
                     </p>
                 </div>
