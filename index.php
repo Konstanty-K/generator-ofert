@@ -538,6 +538,9 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                             <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
                             <label class="form-check-label fw-bold" for="usluga_transport">Dodaj orientacyjną cenę transportu</label>
                         </div>
+                        <div class="text-muted small mb-3" style="font-size: 0.85rem;">
+                            *orientacyjna cena transportu nie dotyczy silosów paszowych.
+                        </div>
 
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-1">
