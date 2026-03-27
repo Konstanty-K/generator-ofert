@@ -790,26 +790,29 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
 
-        // --- NOWA ZAAWANSOWANA LOGIKA TRANSPORTU I MONTAŻU ---
+// --- NOWA ZAAWANSOWANA LOGIKA TRANSPORTU I MONTAŻU ---
         let transportCost = 0;
         let montazCost = 0;
 
-        // Obliczanie Transportu: (Baza * Współczynnik) + Stała, ale nie mniej niż Minimum
+        // Obliczanie Transportu: (Baza * Współczynnik) + Stała, ale nie mniej niż (Minimum * Ilość)
         if (document.getElementById('usluga_transport').checked && baseCost > 0) {
             const tWsp = parseFloat(config.koszt_transportu_wsp) || 0;
             const tStala = parseFloat(config.koszt_transportu_stala) || 0;
-            const tMin = parseFloat(config.koszt_transportu_min) || 990; // Zabezpieczenie na 990 zł
+            const tMinBaza = parseFloat(config.koszt_transportu_min) || 990;
+
+            const tMin = tMinBaza * qty; // <--- ZMIANA: Mnożymy minimum przez ilość zestawów
 
             let calcT = (baseCost * tWsp) + tStala;
             transportCost = Math.max(calcT, tMin); // Wybiera większą kwotę
         }
 
-        // Obliczanie Montażu: (Baza * Współczynnik) + Stała, ale nie mniej niż Minimum
+        // Obliczanie Montażu: (Baza * Współczynnik) + Stała, ale nie mniej niż (Minimum * Ilość)
         if (document.getElementById('usluga_montaz').checked && baseCost > 0) {
-            // Fallback: jeśli w CSV jest stare "koszt_montazu", to też zadziała
             const mWsp = parseFloat(config.koszt_montazu_wsp) || parseFloat(config.koszt_montazu) || 0;
             const mStala = parseFloat(config.koszt_montazu_stala) || 0;
-            const mMin = parseFloat(config.koszt_montazu_min) || 0;
+            const mMinBaza = parseFloat(config.koszt_montazu_min) || 0;
+
+            const mMin = mMinBaza * qty; // <--- ZMIANA: Mnożymy minimum przez ilość zestawów
 
             let calcM = (baseCost * mWsp) + mStala;
             montazCost = Math.max(calcM, mMin);
