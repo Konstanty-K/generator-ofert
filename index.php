@@ -146,57 +146,64 @@ foreach ($categories_config as $cat) {
                 $accs_detailed = []; // Tu będą wszystkie opcje do wyboru
                 $acc_start_idx = 3;
 
-// --- LOGIKA BLOCZKÓW JAKO OPCJA DO WYBORU (Wersja v1.5) ---
+// --- LOGIKA BLOCZKÓW (v1.6 - Obsługa $, ! oraz mnożnika) ---
                 $accs_detailed = [];
-                $acc_start_idx = 3; // Domyślnie akcesoria od kolumny D
+                $acc_start_idx = 3;
 
                 if ($has_blocks_logic) {
                     $raw_bl_val = trim($data[3] ?? '');
                     $szt_bl = (int)trim($data[4] ?? 0);
-                    $acc_start_idx = 5; // Pomijamy kolumny D i E w głównej pętli
+                    $acc_start_idx = 5;
 
                     if ($raw_bl_val && $szt_bl > 0) {
-                        $bl_group = '';
-                        $clean_bl_kod = $raw_bl_val;
+                        // 1. Sprawdzamy czy wycena na zapytanie ($)
+                        $is_quote_bl = (strpos($raw_bl_val, '$') === 0);
+                        $proc_bl = $is_quote_bl ? trim(substr($raw_bl_val, 1)) : $raw_bl_val;
 
-                        // Obsługa wykluczeń (!) dla bloczków
-                        if (strpos($raw_bl_val, '!') === 0) {
-                            $bl_parts = explode(':', substr($raw_bl_val, 1));
+                        $bl_group = '';
+                        $clean_bl_kod = $proc_bl;
+
+                        // 2. Sprawdzamy grupę wykluczającą (!)
+                        if (strpos($proc_bl, '!') === 0) {
+                            $bl_parts = explode(':', substr($proc_bl, 1));
                             if (count($bl_parts) > 1) {
                                 $bl_group = trim($bl_parts[0]);
                                 $clean_bl_kod = trim($bl_parts[1]);
                             }
                         }
 
-                        $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => 'Elementy ceramiczne', 'cena' => 0];
+                        $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => $clean_bl_kod, 'cena' => 0];
                         $accs_detailed[] = [
-                                'kod'   => $clean_bl_kod,
-                                'nazwa' => $m['nazwa'] . " (komplet $szt_bl szt.)",
-                                'cena'  => $m['cena'] * $szt_bl,
-                                'group' => $bl_group
+                                'kod'      => $clean_bl_kod,
+                                'nazwa'    => $m['nazwa'] . " (komplet $szt_bl szt.)",
+                                'cena'     => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
+                                'group'    => $bl_group,
+                                'is_quote' => $is_quote_bl
                         ];
                     }
                 }
 
-                // --- POBIERANIE RESZTY AKCESORIÓW (z obsługą scalania +) ---
+                // --- POBIERANIE RESZTY AKCESORIÓW (v1.6 - Obsługa $, !, +) ---
                 for ($i = $acc_start_idx; $i < count($data); $i++) {
                     $val = trim($data[$i] ?? '');
                     if ($val && !in_array(strtoupper($val), ['NAN', '-', 'S-STANDARD', ''])) {
 
-                        // Czy komórka zaczyna się od '+', co oznacza łączenie z poprzednią?
-                        $is_merge_with_prev = (strpos($val, '+') === 0);
-                        $clean_cell_val = $is_merge_with_prev ? substr($val, 1) : $val;
+                        // 1. Sprawdzamy $
+                        $is_quote = (strpos($val, '$') === 0);
+                        $proc_val = $is_quote ? trim(substr($val, 1)) : $val;
 
-                        // Rozbijamy pakiety wewnątrz jednej komórki (KOD1+KOD2)
-                        $bundle_parts = explode('+', $clean_cell_val);
+                        // 2. Sprawdzamy + (merge)
+                        $is_merge = (strpos($proc_val, '+') === 0);
+                        $clean_cell = $is_merge ? trim(substr($proc_val, 1)) : $proc_val;
+
+                        // 3. Rozbijamy pakiet wewnątrz komórki
+                        $bundle_parts = explode('+', $clean_cell);
                         $temp_names = []; $temp_codes = []; $temp_price = 0;
                         $group_id = '';
 
                         foreach ($bundle_parts as $part) {
                             $code = trim($part);
-                            if (!$code) continue;
-
-                            // Obsługa wykluczeń (!)
+                            // 4. Sprawdzamy ! (exclusive)
                             if (strpos($code, '!') === 0) {
                                 $g_data = explode(':', substr($code, 1));
                                 if (count($g_data) > 1) {
@@ -204,7 +211,6 @@ foreach ($categories_config as $cat) {
                                     $code = trim($g_data[1]);
                                 }
                             }
-
                             $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
                             $temp_price += $master['cena'];
                             $temp_names[] = $master['nazwa'];
@@ -213,19 +219,19 @@ foreach ($categories_config as $cat) {
 
                         $last_idx = count($accs_detailed) - 1;
 
-                        if ($is_merge_with_prev && $last_idx >= 0) {
-                            // SCALAMY Z POPRZEDNIĄ POZYCJĄ
+                        if ($is_merge && $last_idx >= 0) {
                             $accs_detailed[$last_idx]['kod']   .= ' + ' . implode(' + ', $temp_codes);
                             $accs_detailed[$last_idx]['nazwa'] .= ' + ' . implode(' + ', $temp_names);
-                            $accs_detailed[$last_idx]['cena']  += $temp_price;
+                            $accs_detailed[$last_idx]['cena']  += $is_quote ? 0 : $temp_price;
                             if ($group_id) $accs_detailed[$last_idx]['group'] = $group_id;
+                            if ($is_quote) $accs_detailed[$last_idx]['is_quote'] = true;
                         } else {
-                            // NOWA POZYCJA W TABELI
                             $accs_detailed[] = [
-                                    'kod'   => implode(' + ', $temp_codes),
-                                    'nazwa' => implode(' + ', $temp_names),
-                                    'cena'  => $temp_price,
-                                    'group' => $group_id
+                                    'kod'      => implode(' + ', $temp_codes),
+                                    'nazwa'    => implode(' + ', $temp_names),
+                                    'cena'     => $is_quote ? 0 : $temp_price,
+                                    'group'    => $group_id,
+                                    'is_quote' => $is_quote
                             ];
                         }
                     }
@@ -653,122 +659,102 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
     };
 
     window.selectSilo = function(index) {
-        // 1. Ustawiamy wybrany silos
         selectedSilo = data[selectedCategory][index];
-
-        // 2. Zaznaczamy radio button w tabeli krok wyżej
         const radios = document.querySelectorAll('input[name="silo_radio"]');
         if(radios[index]) radios[index].checked = true;
 
-        // 3. Generujemy tabelę akcesoriów
         const tbody = document.getElementById('accessories-tbody');
-
         if(!selectedSilo.akcesoria || selectedSilo.akcesoria.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 fw-bold">Brak płatnych opcji dodatkowych.</td></tr>';
         } else {
             tbody.innerHTML = selectedSilo.akcesoria.map((a, i) => {
-                // Logika grup wykluczających
                 const groupAttr = a.group ? `data-group="${a.group}"` : '';
                 const groupClass = a.group ? `acc-grouped` : '';
+
+                // Jeśli element ma flagę is_quote, nie pokazujemy ceny 0.00 zł
+                const cenaHtml = a.is_quote
+                    ? '<span class="text-danger small fw-bold" style="font-style:italic;">* wycena na zapytanie</span>'
+                    : formatPrice(a.cena) + ' zł';
 
                 return `
                 <tr class="bg-white">
                     <td class="text-center">
-                        <input class="form-check-input acc-checkbox ${groupClass}"
-                               type="checkbox"
-                               value="${i}"
-                               ${groupAttr}
-                               style="width:25px; height:25px;">
+                        <input class="form-check-input acc-checkbox ${groupClass}" type="checkbox" value="${i}" ${groupAttr} style="width:25px; height:25px;">
                     </td>
                     <td>
                         <div class="fw-bold" style="color: var(--main-navy);">${a.nazwa}</div>
                         <code>${a.kod}</code>
                     </td>
-                    <td class="fw-bold text-end">${formatPrice(a.cena)} zł</td>
+                    <td class="fw-bold text-end">${cenaHtml}</td>
                 </tr>`;
             }).join('');
 
-            // 4. Podpinamy zdarzenia (ważna kolejność!)
+            // Podpinamy listenery
             document.querySelectorAll('.acc-checkbox').forEach(cb => {
                 cb.addEventListener('change', function() {
-                    // Jeśli to checkbox grupowy i został zaznaczony
                     if (this.classList.contains('acc-grouped') && this.checked) {
                         const group = this.getAttribute('data-group');
-                        // Odznacz inne z tej samej grupy
                         document.querySelectorAll(`.acc-grouped[data-group="${group}"]`).forEach(other => {
                             if (other !== this) other.checked = false;
                         });
                     }
-                    // Po każdej zmianie przeliczamy sumę
                     calculateTotal();
                 });
             });
         }
-
         toggleStep(3);
         calculateTotal();
     };
 
-    function formatPrice(val) {
-        return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
     function calculateTotal() {
-        let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0;
+        let totalSiloPrice = 0, totalAccPrice = 0, accsCount = 0, hasQuoteItem = false;
 
         if (selectedSilo) {
             totalSiloPrice = selectedSilo.cena;
-            // Sumujemy tylko zaznaczone checkboxy
             document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
-                const accIndex = cb.value;
-                totalAccPrice += selectedSilo.akcesoria[accIndex].cena;
+                const a = selectedSilo.akcesoria[cb.value];
+                totalAccPrice += a.cena;
                 accsCount++;
+                if (a.is_quote) hasQuoteItem = true;
             });
         }
 
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
-
-        // Obliczamy mnożniki za montaż/transport
         let multiplier = 1.0;
         if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
         if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
 
         let finalTotal = baseCost * multiplier;
 
-        // Aktualizacja UI
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
-        document.getElementById('totalValue').innerText = formatPrice(finalTotal) + " zł";
+
+        // Jeśli wybrano element "na zapytanie", dodajemy dopisek przy sumie
+        const extraInfo = hasQuoteItem ? ' <small style="font-size:0.9rem; color:#d9534f;">+ wycena indyw.</small>' : '';
+        document.getElementById('totalValue').innerHTML = formatPrice(finalTotal) + " zł" + extraInfo;
 
         let finalTotalGross = finalTotal * 1.23;
         document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
-        // Budowa paczki danych (Payload)
+        // Payload dla wyslij.php
         let payload = {
             silo: selectedSilo,
             akcesoria: [],
             qty: qty,
-            baseCost: baseCost,
-            montaz: document.getElementById('usluga_montaz').checked ? config.koszt_montazu : 0,
-            transport: document.getElementById('usluga_transport').checked ? config.koszt_transportu : 0,
             total: finalTotal,
-            totalGross: finalTotalGross,
-            isVat: document.getElementById('klient_vat').checked,
-            isRyczalt: document.getElementById('klient_ryczalt').checked,
-            skadInfo: document.getElementById('skad_info').value,
             kodRabatowy: document.getElementById('kod_rabatowy').value,
-            infoGestosc: categories.find(c => c.id === selectedCategory).info
+            infoGestosc: selectedCategory ? categories.find(c => c.id === selectedCategory).info : ''
         };
-
-        if (selectedSilo) {
-            document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
-                payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
-            });
-        }
-
+        document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
+            payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
+        });
         document.getElementById('hidden-payload').value = JSON.stringify(payload);
+    }
+
+    function formatPrice(val) {
+        return val.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function validateForm() {
