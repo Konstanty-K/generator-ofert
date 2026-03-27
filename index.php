@@ -30,6 +30,16 @@
         .header-subtext { font-size: 0.75rem; font-weight: 600; letter-spacing: 1.5px; margin: 0; }
         .icon-gray { color: var(--accent-soft) !important; margin-right: 8px; }
 
+        /* Wymuszenie stałego układu tabel i łamania długich tekstów */
+        .table-fixed-layout {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .table-fixed-layout td {
+            vertical-align: middle;
+            word-wrap: break-word; /* Długi opis złamie się do nowej linii */
+        }
+
         .category-tile {
             border: 2px solid transparent;
             border-radius: 0;
@@ -110,6 +120,27 @@ if (($handle = @fopen("produkty.csv", "r")) !== FALSE) {
             $nazwa = trim($data[1]);
             $cena = (float)str_replace(',', '.', trim($data[41]));
             $cenyMaster[$kod] = ['nazwa' => $nazwa, 'cena' => $cena];
+        }
+    }
+    fclose($handle);
+}
+
+// 1b. SŁOWNIK OPISÓW I NAZW WŁASNYCH (opisy.csv)
+$slownikOpisow = [];
+if (file_exists('opisy.csv') && ($handle = @fopen('opisy.csv', "r")) !== FALSE) {
+    fgetcsv($handle); // Pomijamy nagłówek
+    while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+        if (count($data) >= 2) {
+            $kod = trim($data[0]);
+            $wlasnaNazwa = trim($data[1]);
+            $dlugiOpis = isset($data[2]) ? trim($data[2]) : '';
+
+            if (!empty($kod)) {
+                $slownikOpisow[$kod] = [
+                        'nazwa' => $wlasnaNazwa,
+                        'opis'  => $dlugiOpis
+                ];
+            }
         }
     }
     fclose($handle);
@@ -211,9 +242,31 @@ foreach ($categories_config as $cat) {
                                     $code = trim($g_data[1]);
                                 }
                             }
+                            $code = trim($part);
+                            // Sprawdzamy ! (exclusive)
+                            if (strpos($code, '!') === 0) {
+                                $g_data = explode(':', substr($code, 1));
+                                if (count($g_data) > 1) {
+                                    $group_id = trim($g_data[0]);
+                                    $code = trim($g_data[1]);
+                                }
+                            }
+
+                            // 1. Pobieramy bazę z Comarcha
                             $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
                             $temp_price += $master['cena'];
-                            $temp_names[] = $master['nazwa'];
+
+                            // 2. Nadpisujemy ze Słownika (jeśli istnieje)
+                            $nazwaDoWyswietlenia = $slownikOpisow[$code]['nazwa'] ?? $master['nazwa'];
+                            $opisDodatkowy = $slownikOpisow[$code]['opis'] ?? '';
+
+                            // 3. Dodajemy opis do nazwy, jeśli łączymy elementy (+)
+                            // Używamy prostego znacznika HTML, który obsłuży JS
+                            if (!empty($opisDodatkowy)) {
+                                $nazwaDoWyswietlenia .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
+                            }
+
+                            $temp_names[] = $nazwaDoWyswietlenia;
                             $temp_codes[] = $code;
                         }
 
@@ -310,12 +363,13 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     </div>
                     <div class="card-body d-none pt-0" id="step2-content">
                         <div class="table-responsive border border-top-0">
-                            <table class="table align-middle m-0 table-hover">
+                            <table class="table align-middle m-0 table-hover table-fixed-layout">
                                 <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 50px;" class="text-center">#</th>
-                                    <th>Model silosu</th>
-                                    <th class="text-center">Ładowność*</th> <th class="text-end">Cena netto</th>                                </tr>
+                                    <th style="width: 5%;" class="text-center">#</th>
+                                    <th style="width: 55%;">Model silosu</th>
+                                    <th style="width: 15%;" class="text-center">Ładowność*</th>
+                                    <th style="width: 25%;" class="text-end">Cena netto</th>                             </tr>
                                 </thead>
                                 <tbody id="silos-tbody"></tbody>
                             </table>
@@ -333,12 +387,12 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     <div class="card-body d-none pt-0" id="step3-content">
                         <h6 class="fw-bold mb-3 text-muted text-uppercase">Opcjonalne akcesoria</h6>
                         <div class="table-responsive border mb-4">
-                            <table class="table align-middle m-0">
+                            <table class="table align-middle m-0 table-fixed-layout">
                                 <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 60px;" class="text-center"><i class="bi bi-check-square"></i></th>
-                                    <th>Akcesorium i Kod</th>
-                                    <th class="text-end">Cena netto</th>
+                                    <th style="width: 10%;" class="text-center"><i class="bi bi-check-square"></i></th>
+                                    <th style="width: 65%;">Akcesorium i Kod</th>
+                                    <th style="width: 25%;" class="text-end">Cena netto</th>
                                 </tr>
                                 </thead>
                                 <tbody id="accessories-tbody"></tbody>
