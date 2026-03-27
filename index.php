@@ -789,35 +789,62 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
         const qty = parseInt(document.getElementById('silo-qty').value) || 1;
         let baseCost = (totalSiloPrice + totalAccPrice) * qty;
-        let multiplier = 1.0;
-        if(document.getElementById('usluga_montaz').checked) multiplier += (parseFloat(config.koszt_montazu) || 0);
-        if(document.getElementById('usluga_transport').checked) multiplier += (parseFloat(config.koszt_transportu) || 0);
 
-        let finalTotal = baseCost * multiplier;
+        // --- NOWA ZAAWANSOWANA LOGIKA TRANSPORTU I MONTAŻU ---
+        let transportCost = 0;
+        let montazCost = 0;
+
+        // Obliczanie Transportu: (Baza * Współczynnik) + Stała, ale nie mniej niż Minimum
+        if (document.getElementById('usluga_transport').checked && baseCost > 0) {
+            const tWsp = parseFloat(config.koszt_transportu_wsp) || 0;
+            const tStala = parseFloat(config.koszt_transportu_stala) || 0;
+            const tMin = parseFloat(config.koszt_transportu_min) || 990; // Zabezpieczenie na 990 zł
+
+            let calcT = (baseCost * tWsp) + tStala;
+            transportCost = Math.max(calcT, tMin); // Wybiera większą kwotę
+        }
+
+        // Obliczanie Montażu: (Baza * Współczynnik) + Stała, ale nie mniej niż Minimum
+        if (document.getElementById('usluga_montaz').checked && baseCost > 0) {
+            // Fallback: jeśli w CSV jest stare "koszt_montazu", to też zadziała
+            const mWsp = parseFloat(config.koszt_montazu_wsp) || parseFloat(config.koszt_montazu) || 0;
+            const mStala = parseFloat(config.koszt_montazu_stala) || 0;
+            const mMin = parseFloat(config.koszt_montazu_min) || 0;
+
+            let calcM = (baseCost * mWsp) + mStala;
+            montazCost = Math.max(calcM, mMin);
+        }
+
+        // --- PODSUMOWANIE ---
+        let finalTotal = baseCost + transportCost + montazCost;
 
         document.getElementById('summary-silo-name').innerText = selectedSilo ? selectedSilo.nazwa : '-';
         document.getElementById('summary-accs-count').innerText = accsCount;
         document.getElementById('summary-qty').innerText = qty;
 
-        // Jeśli wybrano element "na zapytanie", dodajemy dopisek przy sumie
+        // Dopisek o wycenie indywidualnej, jeśli wybrano coś ze znakiem $
         const extraInfo = hasQuoteItem ? ' <small style="font-size:0.9rem; color:#d9534f;">+ wycena indyw.</small>' : '';
         document.getElementById('totalValue').innerHTML = formatPrice(finalTotal) + " zł" + extraInfo;
 
         let finalTotalGross = finalTotal * 1.23;
         document.getElementById('totalValueGross').innerText = "w tym VAT (23%): " + formatPrice(finalTotalGross) + " zł brutto";
 
-        // Payload dla wyslij.php
+        // Aktualizacja paczki danych do PDF-a
         let payload = {
             silo: selectedSilo,
             akcesoria: [],
             qty: qty,
             total: finalTotal,
+            montaz: montazCost,         // Teraz przekazujemy dokładną kwotę do wyslij.php
+            transport: transportCost,   // Teraz przekazujemy dokładną kwotę do wyslij.php
             kodRabatowy: document.getElementById('kod_rabatowy').value,
             infoGestosc: selectedCategory ? categories.find(c => c.id === selectedCategory).info : ''
         };
+
         document.querySelectorAll('.acc-checkbox:checked').forEach(cb => {
             payload.akcesoria.push(selectedSilo.akcesoria[cb.value]);
         });
+
         document.getElementById('hidden-payload').value = JSON.stringify(payload);
     }
 
