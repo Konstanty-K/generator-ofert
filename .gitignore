@@ -11,10 +11,8 @@ vendor/
 composer.phar
 
 # --- DANE BIZNESOWE ---
-# Jeśli ceny w CSV są poufne, ignoruj je.
 # Na serwer wgrasz je ręcznie przez FTP.
 *.csv
-szablon_maila.php
 
 # --- PLIKI MULTIMEDIALNE ---
 # Ignoruj zdjęcia, jeśli są duże i nie chcesz "zapchać" repozytorium
