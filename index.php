@@ -188,7 +188,6 @@ foreach ($categories_config as $cat) {
 
                     if ($raw_bl_val && $szt_bl > 0) {
 
-                        // NIEZAWODNE ODCINANIE MNOŻNIKA Z KODU BAZOWEGO
                         if (strpos($raw_bl_val, '*') !== false) {
                             $bl_parts_star = explode('*', $raw_bl_val);
                             $raw_bl_val = trim($bl_parts_star[0]);
@@ -210,12 +209,21 @@ foreach ($categories_config as $cat) {
 
                         $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => $clean_bl_kod, 'cena' => 0];
 
-                        // [POPRAWKA] - OCHRONA PRZED PUSTĄ NAZWĄ W SŁOWNIKU
+                        // [NOWOŚĆ] - OBSŁUGA ZNAKU "-" LUB "@" JAKO "UKRYJ NAZWĘ"
                         $nazwaWlasna = trim($slownikOpisow[$clean_bl_kod]['nazwa'] ?? '');
-                        $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $m['nazwa'];
+                        if ($nazwaWlasna === '-' || $nazwaWlasna === '@') {
+                            $nazwaWyswietlana = '';
+                        } else {
+                            $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $m['nazwa'];
+                        }
 
-                        $nazwaWyswietlana .= " (komplet $szt_bl szt.)";
-                        $opisDodatkowy = $slownikOpisow[$clean_bl_kod]['opis'] ?? '';
+                        // Estetyczne dodawanie mnożnika
+                        if ($szt_bl > 1) {
+                            $nazwaWyswietlana .= ($nazwaWyswietlana === '') ? "Komplet $szt_bl szt." : " (komplet $szt_bl szt.)";
+                        }
+
+                        $opisDodatkowy = trim($slownikOpisow[$clean_bl_kod]['opis'] ?? '');
+                        if ($opisDodatkowy === '-' || $opisDodatkowy === '@') $opisDodatkowy = ''; // Zabezpieczenie dla opisu
 
                         if (!empty($opisDodatkowy)) {
                             $nazwaWyswietlana .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
@@ -224,10 +232,10 @@ foreach ($categories_config as $cat) {
                         $kodDoWyswietlenia = $szt_bl > 1 ? $clean_bl_kod . " x" . $szt_bl : $clean_bl_kod;
 
                         $accs_detailed[] = [
-                                'kod' => $kodDoWyswietlenia,
-                                'nazwa' => $nazwaWyswietlana,
-                                'cena' => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
-                                'group' => $bl_group,
+                                'kod'      => $kodDoWyswietlenia,
+                                'nazwa'    => $nazwaWyswietlana,
+                                'cena'     => $is_quote_bl ? 0 : ($m['cena'] * $szt_bl),
+                                'group'    => $bl_group,
                                 'is_quote' => $is_quote_bl
                         ];
                     }
@@ -245,10 +253,9 @@ foreach ($categories_config as $cat) {
                         $clean_cell = $is_merge ? trim(substr($proc_val, 1)) : $proc_val;
 
                         $bundle_parts = explode('+', $clean_cell);
-                        $temp_names = [];
-                        $temp_codes = [];
-                        $temp_price = 0;
+                        $temp_names = []; $temp_codes = []; $temp_price = 0;
                         $group_id = '';
+                        $has_hidden = false; // FLAGA: Wykrywa, czy użyto '-' lub '@' w paczce
 
                         foreach ($bundle_parts as $part) {
                             $code = trim($part);
@@ -275,15 +282,22 @@ foreach ($categories_config as $cat) {
                             $master = $cenyMaster[$code] ?? ['nazwa' => $code, 'cena' => 0];
                             $temp_price += ($master['cena'] * $sztuki);
 
-                            // [POPRAWKA] - OCHRONA PRZED PUSTĄ NAZWĄ W SŁOWNIKU
+                            // Weryfikacja słownika i flagowanie ukrytych
                             $nazwaWlasna = trim($slownikOpisow[$code]['nazwa'] ?? '');
-                            $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $master['nazwa'];
-
-                            if ($sztuki > 1) {
-                                $nazwaWyswietlana .= " (komplet $sztuki szt.)";
+                            if ($nazwaWlasna === '-' || $nazwaWlasna === '@') {
+                                $nazwaWyswietlana = '';
+                                $has_hidden = true; // Odpalamy flagę!
+                            } else {
+                                $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $master['nazwa'];
                             }
 
-                            $opisDodatkowy = $slownikOpisow[$code]['opis'] ?? '';
+                            if ($sztuki > 1) {
+                                $nazwaWyswietlana .= ($nazwaWyswietlana === '') ? "Komplet $sztuki szt." : " (komplet $sztuki szt.)";
+                            }
+
+                            $opisDodatkowy = trim($slownikOpisow[$code]['opis'] ?? '');
+                            if ($opisDodatkowy === '-' || $opisDodatkowy === '@') $opisDodatkowy = '';
+
                             if (!empty($opisDodatkowy)) {
                                 $nazwaWyswietlana .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
                             }
@@ -294,23 +308,44 @@ foreach ($categories_config as $cat) {
 
                         $last_idx = count($accs_detailed) - 1;
 
+                        // 1. KODY: Zawsze zachowują znak "+" jako techniczny łącznik
+                        $kody_dodatek = implode(' + ', $temp_codes);
+
+                        // 2. NAZWY: Filtrujemy puste stringi (żegnajcie samotne plusy!)
+                        $valid_names = array_filter($temp_names, function($v) { return trim($v) !== ''; });
+
+                        // 3. SEPARATOR: Jeśli flaga aktywna, używamy spacji. W przeciwnym razie "+"
+                        $separator_nazw = $has_hidden ? ' ' : ' + ';
+                        $nazwy_dodatek = implode($separator_nazw, $valid_names);
+
                         if ($is_merge && $last_idx >= 0) {
-                            $accs_detailed[$last_idx]['kod'] .= ' + ' . implode(' + ', $temp_codes);
-                            $accs_detailed[$last_idx]['nazwa'] .= ' + ' . implode(' + ', $temp_names);
-                            $accs_detailed[$last_idx]['cena'] += $is_quote ? 0 : $temp_price;
+                            $accs_detailed[$last_idx]['kod'] .= ' + ' . $kody_dodatek;
+
+                            // Bezpieczne doklejanie nazwy bez dublowania plusów
+                            if ($nazwy_dodatek !== '') {
+                                $obecna_nazwa = trim($accs_detailed[$last_idx]['nazwa']);
+                                if ($obecna_nazwa === '') {
+                                    $accs_detailed[$last_idx]['nazwa'] = $nazwy_dodatek;
+                                } else {
+                                    $accs_detailed[$last_idx]['nazwa'] = $obecna_nazwa . $separator_nazw . $nazwy_dodatek;
+                                }
+                            }
+
+                            $accs_detailed[$last_idx]['cena']  += $is_quote ? 0 : $temp_price;
                             if ($group_id) $accs_detailed[$last_idx]['group'] = $group_id;
                             if ($is_quote) $accs_detailed[$last_idx]['is_quote'] = true;
                         } else {
                             $accs_detailed[] = [
-                                    'kod' => implode(' + ', $temp_codes),
-                                    'nazwa' => implode(' + ', $temp_names),
-                                    'cena' => $is_quote ? 0 : $temp_price,
-                                    'group' => $group_id,
+                                    'kod'      => $kody_dodatek,
+                                    'nazwa'    => $nazwy_dodatek,
+                                    'cena'     => $is_quote ? 0 : $temp_price,
+                                    'group'    => $group_id,
                                     'is_quote' => $is_quote
                             ];
                         }
                     }
                 }
+
                 $silo_master = $cenyMaster[$silo_code] ?? ['nazwa' => $silo_code, 'cena' => 0];
                 $final_name = !empty($custom_desc) ? $custom_desc : $silo_master['nazwa'];
 
