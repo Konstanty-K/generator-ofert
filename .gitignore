@@ -13,6 +13,7 @@ composer.phar
 # --- DANE BIZNESOWE ---
 # Na serwer wgrasz je ręcznie przez FTP.
 *.csv
+!produkty_sample.csv
 
 # --- PLIKI MULTIMEDIALNE ---
 # Ignoruj zdjęcia, jeśli są duże i nie chcesz "zapchać" repozytorium
