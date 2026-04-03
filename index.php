@@ -629,7 +629,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </a>
                     </p>
                     <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
-                        Wersja: <span class="fw-bold text-dark">0.9.4 (beta)</span> |
+                        Wersja: <span class="fw-bold text-dark">1.0.1</span> |
                         <span class="fw-bold text-dark">27.03.2026</span>
                     </p>
                 </div>
