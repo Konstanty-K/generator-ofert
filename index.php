@@ -15,6 +15,8 @@ Prezentowane towary nie stanowią oferty w rozumieniu przepisów Kodeksu cywilne
             --main-navy: #0b2239;
             --accent-soft: #ced4da;
             --bg-light: #f4f7f6;
+            --red:#d9534f;
+
         }
 
         body {
@@ -388,6 +390,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
         </div>
         <div class="text-end d-none d-md-block">
             <div class="mb-1"><i class="bi bi-telephone-fill icon-gray"></i><span class="fw-bold">52 385-78-59</span></div>
+            <div class="mb-1"><i class="bi bi-telephone-fill icon-gray"></i><span class="fw-bold">573-076-159</span></div>
             <div><i class="bi bi-envelope icon-gray"></i><span class="opacity-75">silosy@konsil.pl</span></div>
         </div>
     </div>
@@ -530,7 +533,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                             </div>
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" value="1" id="chce_adres" name="chce_adres" onchange="toggleAddressFields()">
-                                <label class="form-check-label fw-bold" for="chce_adres" style="color: var(--main-navy);">
+                                <label class="form-check-label fw-bold" for="chce_adres" style="color: var(--red);">
                                     Chcę otrzymać szczegółową wycenę transportu i montażu na podany adres
                                 </label>
                             </div>
@@ -573,13 +576,17 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </div>
 
                         <h5 class="fw-bold mt-4 mb-3" style="color: var(--main-navy); font-size: 1.1rem;">Usługi dodatkowe</h5>
-                        <div class="form-check form-switch mb-3 p-3 bg-light border">
-                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_montaz">
-                            <label class="form-check-label fw-bold" for="usluga_montaz">Dodaj orientacyjną cenę montażu</label>
+                        <div class="form-check form-switch mb-3 p-3 bg-light border d-flex align-items-center">
+                            <input class="form-check-input ms-0 me-3" type="checkbox" id="usluga_montaz">
+                            <label class="form-check-label fw-bold d-flex align-items-center" for="usluga_montaz" style="cursor: pointer;">
+                                <i class="bi bi-tools text-muted me-2 fs-5"></i> Dodaj orientacyjną cenę montażu
+                            </label>
                         </div>
-                        <div class="form-check form-switch mb-4 p-3 bg-light border">
-                            <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="usluga_transport" checked>
-                            <label class="form-check-label fw-bold" for="usluga_transport">Dodaj orientacyjną cenę transportu</label>
+                        <div class="form-check form-switch mb-4 p-3 bg-light border d-flex align-items-center">
+                            <input class="form-check-input ms-0 me-3" type="checkbox" id="usluga_transport" checked>
+                            <label class="form-check-label fw-bold d-flex align-items-center" for="usluga_transport" style="cursor: pointer;">
+                                <i class="bi bi-truck text-muted me-2 fs-5"></i> Dodaj orientacyjną cenę transportu
+                            </label>
                         </div>
                         <div class="text-muted small mb-3" style="font-size: 0.85rem;">
                             *orientacyjna cena transportu nie dotyczy silosów paszowych.
