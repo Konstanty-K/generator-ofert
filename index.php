@@ -593,10 +593,27 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </div>
 
                         <hr>
+
+                        <div id="cost-breakdown" class="mb-3 pb-2 border-bottom d-none">
+                            <div class="d-flex justify-content-between small mb-1 text-muted">
+                                <span>Produkty (silos + opcje):</span>
+                                <span id="breakdown-products" class="fw-bold text-dark">0,00 zł</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-1 text-muted d-none" id="row-breakdown-montaz">
+                                <span>Montaż:</span>
+                                <span id="breakdown-montaz" class="fw-bold text-dark">0,00 zł</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-1 text-muted d-none" id="row-breakdown-transport">
+                                <span>Transport:</span>
+                                <span id="breakdown-transport" class="fw-bold text-dark">0,00 zł</span>
+                            </div>
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-uppercase fw-bold text-muted small">Wartość orientacyjna:</span>
+                            <span class="text-uppercase fw-bold text-muted small">Wartość orientacyjna sumaryczna:</span>
                             <span class="badge" style="background-color: var(--main-navy);">NETTO</span>
                         </div>
+
                         <div id="totalValue" class="display-6 fw-bold mb-0" style="color: var(--main-navy);">0,00 zł</div>
                         <div id="totalValueGross" class="text-muted small mb-3" style="font-size: 0.85rem;">
                             w tym VAT (23%): 0,00 zł brutto
@@ -873,6 +890,28 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
             let calcM = (baseCost * mWsp) + mStala;
             montazCost = Math.max(calcM, mMin);
+        }
+
+        // --- AKTUALIZACJA ROZBICIA KOSZTÓW ---
+        if (baseCost > 0) {
+            document.getElementById('cost-breakdown').classList.remove('d-none');
+            document.getElementById('breakdown-products').innerText = formatPrice(baseCost) + " zł";
+
+            if (document.getElementById('usluga_montaz').checked) {
+                document.getElementById('row-breakdown-montaz').classList.remove('d-none');
+                document.getElementById('breakdown-montaz').innerText = formatPrice(montazCost) + " zł";
+            } else {
+                document.getElementById('row-breakdown-montaz').classList.add('d-none');
+            }
+
+            if (document.getElementById('usluga_transport').checked && transportCost > 0) {
+                document.getElementById('row-breakdown-transport').classList.remove('d-none');
+                document.getElementById('breakdown-transport').innerText = formatPrice(transportCost) + " zł";
+            } else {
+                document.getElementById('row-breakdown-transport').classList.add('d-none');
+            }
+        } else {
+            document.getElementById('cost-breakdown').classList.add('d-none');
         }
 
         // --- PODSUMOWANIE ---
