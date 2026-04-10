@@ -180,7 +180,7 @@ foreach ($categories_config as $cat) {
                 $ladownosc = trim($data[2] ?? '');
 
                 $accs_detailed = [];
-                $acc_start_idx = 3;
+                $acc_start_idx = 5;
 
                 // --- 1. WSTECZNA KOMPATYBILNOŚĆ - LOGIKA BLOCZKÓW (Kolumny D i E z XO1) ---
                 if ($has_blocks_logic) {
@@ -356,6 +356,8 @@ foreach ($categories_config as $cat) {
                         'nazwa' => $final_name,
                         'cena' => $silo_master['cena'], // Cena bazowa silosu WRACA DO NORMY
                         'ladownosc' => $ladownosc,
+                        'srednica' => trim($data[3] ?? ''),
+                        'wysokosc' => trim($data[4] ?? ''),
                         'akcesoria' => $accs_detailed // Bloczki są teraz tutaj!
                 ];
             }
@@ -427,9 +429,12 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                                 <thead class="table-dark">
                                 <tr>
                                     <th style="width: 5%;" class="text-center">#</th>
-                                    <th style="width: 55%;">Model silosu</th>
+                                    <th style="width: 35%;">Model silosu</th>
+                                    <th style="width: 10%;" class="text-center" title="Średnica">⌀ Śred.</th>
+                                    <th style="width: 10%;" class="text-center" title="Wysokość">↕ Wys.</th>
                                     <th style="width: 15%;" class="text-center">Ładowność*</th>
-                                    <th style="width: 25%;" class="text-end">Cena netto</th>                             </tr>
+                                    <th style="width: 25%;" class="text-end">Cena netto</th>
+                                </tr>
                                 </thead>
                                 <tbody id="silos-tbody"></tbody>
                             </table>
@@ -653,7 +658,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </a>
                     </p>
                     <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
-                        Wersja: <span class="fw-bold text-dark">1.1.0</span> |
+                        Wersja: <span class="fw-bold text-dark">1.2.0</span> |
                         <span class="fw-bold text-dark">10.04.2026</span>
                     </p>
                 </div>
@@ -767,6 +772,9 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
 
         document.getElementById('silos-tbody').innerHTML = silos.map((s, i) => {
             const ladownoscDisplay = s.ladownosc ? `<strong>${s.ladownosc} t</strong>` : '-';
+            const srednicaDisplay = s.srednica ? `${s.srednica} m` : '-';
+            const wysokoscDisplay = s.wysokosc ? `${s.wysokosc} m` : '-';
+
             return `
             <tr style="cursor: pointer;" onclick="selectSilo(${i})">
                 <td class="text-center">
@@ -776,6 +784,8 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                     <div class="fw-bold" style="color: var(--main-navy);">${s.nazwa}</div>
                     <code class="text-muted small">Kod: ${s.kod}</code>
                 </td>
+                <td class="text-center text-muted">${srednicaDisplay}</td>
+                <td class="text-center text-muted">${wysokoscDisplay}</td>
                 <td class="text-center text-muted">${ladownoscDisplay}</td>
                 <td class="fw-bold text-end">${formatPrice(s.cena)} zł</td>
             </tr>`;
