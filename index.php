@@ -168,9 +168,11 @@ foreach ($categories_config as $cat) {
 // ... wewnątrz pętli foreach ($categories_config as $cat) ...
         while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
             $first_col = trim(strtoupper($data[0] ?? ''));
+
+            // --- AKTUALIZACJA: Przesuwamy szukanie 'XO1' na indeks 6 (Kolumna G) ---
             if ($first_col === 'MODEL' || $first_col === 'KATEGORIA') {
                 $model_row_found = true;
-                $has_blocks_logic = (isset($data[4]) && strtoupper(trim($data[4])) === 'XO1');
+                $has_blocks_logic = (isset($data[6]) && strtoupper(trim($data[6])) === 'XO1');
                 continue;
             }
 
@@ -179,14 +181,18 @@ foreach ($categories_config as $cat) {
                 $custom_desc = trim($data[1] ?? '');
                 $ladownosc = trim($data[2] ?? '');
 
-                $accs_detailed = [];
-                $acc_start_idx = 5;
+                // --- NOWE WYMIARY (Kolumny D i E, indeksy 3 i 4) ---
+                $srednica = trim($data[3] ?? '');
+                $wysokosc = trim($data[4] ?? '');
 
-                // --- 1. WSTECZNA KOMPATYBILNOŚĆ - LOGIKA BLOCZKÓW (Kolumny D i E z XO1) ---
+                $accs_detailed = [];
+                $acc_start_idx = 5; // Domyślny start zunifikowanych akcesoriów (Kolumna F)
+
+                // --- 1. WSTECZNA KOMPATYBILNOŚĆ - LOGIKA BLOCZKÓW (Przesunięta na Kolumny F i G) ---
                 if ($has_blocks_logic) {
-                    $raw_bl_val = trim($data[3] ?? '');
-                    $szt_bl = (int)trim($data[4] ?? 0);
-                    $acc_start_idx = 5;
+                    $raw_bl_val = trim($data[5] ?? '');
+                    $szt_bl = (int)trim($data[6] ?? 0);
+                    $acc_start_idx = 7; // Jeśli są bloczki, zunifikowane akcesoria startują od Kolumny H (indeks 7)
 
                     if ($raw_bl_val && $szt_bl > 0) {
 
@@ -211,7 +217,6 @@ foreach ($categories_config as $cat) {
 
                         $m = $cenyMaster[$clean_bl_kod] ?? ['nazwa' => $clean_bl_kod, 'cena' => 0];
 
-                        // [NOWOŚĆ] - OBSŁUGA ZNAKU "-" LUB "@" JAKO "UKRYJ NAZWĘ"
                         $nazwaWlasna = trim($slownikOpisow[$clean_bl_kod]['nazwa'] ?? '');
                         if ($nazwaWlasna === '-' || $nazwaWlasna === '@') {
                             $nazwaWyswietlana = '';
@@ -219,13 +224,12 @@ foreach ($categories_config as $cat) {
                             $nazwaWyswietlana = ($nazwaWlasna !== '') ? $nazwaWlasna : $m['nazwa'];
                         }
 
-                        // Estetyczne dodawanie mnożnika
                         if ($szt_bl > 1) {
                             $nazwaWyswietlana .= ($nazwaWyswietlana === '') ? "Komplet $szt_bl szt." : " (komplet $szt_bl szt.)";
                         }
 
                         $opisDodatkowy = trim($slownikOpisow[$clean_bl_kod]['opis'] ?? '');
-                        if ($opisDodatkowy === '-' || $opisDodatkowy === '@') $opisDodatkowy = ''; // Zabezpieczenie dla opisu
+                        if ($opisDodatkowy === '-' || $opisDodatkowy === '@') $opisDodatkowy = '';
 
                         if (!empty($opisDodatkowy)) {
                             $nazwaWyswietlana .= "<div class='text-muted small fst-italic mt-1 lh-sm' style='font-size: 0.75rem; white-space: normal;'>{$opisDodatkowy}</div>";
@@ -658,7 +662,7 @@ if (file_exists('konfiguracja.csv') && ($handle = @fopen('konfiguracja.csv', "r"
                         </a>
                     </p>
                     <p class="mb-0 text-muted" style="font-size: 0.55rem; letter-spacing: 0.5px;">
-                        Wersja: <span class="fw-bold text-dark">1.2.0</span> |
+                        Wersja: <span class="fw-bold text-dark">1.2.1</span> |
                         <span class="fw-bold text-dark">10.04.2026</span>
                     </p>
                 </div>
