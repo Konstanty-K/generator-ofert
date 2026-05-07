@@ -16,6 +16,10 @@ Options -Indexes
     Order Allow,Deny
     Deny from all
 </Files>
+# 3. Dodatkowa blokada dla Twoich logów (nawet jeśli zmienisz nazwę na .php)
+<Files "system_log.php">
+    Require all denied
+</Files>
 
 # 3. Wyjątek: Pozwól na dostęp do wygenerowanych ofert (jeśli zapisujesz je w tym samym folderze)
 # Jeśli chcesz, by klient mógł pobrać gotowy PDF, odkomentuj poniższe linie,

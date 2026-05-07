@@ -12,7 +12,14 @@ function logZdarzenie($wiadomosc, $poziom = 'INFO') {
     $data = date('Y-m-d H:i:s');
     $ip = $_SERVER['REMOTE_ADDR'];
     $wpis = "[$data] [$poziom] [IP: $ip] $wiadomosc" . PHP_EOL;
-    file_put_contents(__DIR__ . '/system.log', $wpis, FILE_APPEND);
+
+    $plikLogow = __DIR__ . '/system_log.php';
+    //file_put_contents(__DIR__ . '/system.log', $wpis, FILE_APPEND);
+    if (!file_exists($plikLogow)) {
+        file_put_contents($plikLogow, "<?php exit('Brak dostępu'); ?>" . PHP_EOL);
+    }
+
+    file_put_contents($plikLogow, $wpis, FILE_APPEND);
 }
 
 $config = require 'config.php';
