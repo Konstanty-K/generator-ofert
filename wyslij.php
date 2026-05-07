@@ -87,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     ];
 
     // 1a. FILTR JACKA - Sprawdzamy dane dopiero, gdy $klient już istnieje
-    $czarnaLista = ['test', 'proba', 'testing', 'check', 'demo', 'asdasd', '12345'];
+    $czarnaLista = ['test', 'proba', 'testing', 'check', 'demo', 'asdasd', '123'];
     $daneDoSprawdzenia = mb_strtolower($klient['nazwa'] . ' ' . $klient['email'] . ' ' . $klient['uwagi']);
 
     foreach ($czarnaLista as $slowo) {
