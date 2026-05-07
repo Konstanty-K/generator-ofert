@@ -12,6 +12,10 @@ Options -Indexes
     Order allow,deny
     Deny from all
 </FilesMatch>
+<Files "system.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
 
 # 3. Wyjątek: Pozwól na dostęp do wygenerowanych ofert (jeśli zapisujesz je w tym samym folderze)
 # Jeśli chcesz, by klient mógł pobrać gotowy PDF, odkomentuj poniższe linie,
@@ -22,8 +26,7 @@ Options -Indexes
 #    </FilesMatch>
 # </Directory>
 
-# 4. Ochrona plików konfiguracyjnych PHP
-# Nikt nie będzie mógł podejrzeć kodu źródłowego config.php przez przeglądarkę.
+# 4. Ochrona plików konfiguracyjnych
 <Files "config.php">
     Order allow,deny
     Deny from all

@@ -8,6 +8,12 @@
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+function logZdarzenie($wiadomosc, $poziom = 'INFO') {
+    $data = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $wpis = "[$data] [$poziom] [IP: $ip] $wiadomosc" . PHP_EOL;
+    file_put_contents(__DIR__ . '/system.log', $wpis, FILE_APPEND);
+}
 
 $config = require 'config.php';
 require 'vendor/autoload.php';
@@ -69,6 +75,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 1. POBIERANIE DANYCH
     $payload = json_decode($_POST['payload_json'], true);
+
+// FILTR
+    $czarnaLista = ['test', 'proba', 'testing', 'check', 'demo', 'asdasd', '12345'];
+    $daneDoSprawdzenia = mb_strtolower($klient['nazwa'] . ' ' . $klient['email'] . ' ' . $klient['uwagi']);
+
+    foreach ($czarnaLista as $slowo) {
+        if (strpos($daneDoSprawdzenia, $slowo) !== false) {
+            logZdarzenie("Zablokowano próbę wysyłki - słowo kluczowe: $slowo", 'BLOKADA');
+            die("Błąd: Użyto słowa testowego ($slowo). Proszę wypełnić formularz prawdziwymi danymi.");
+        }
+    }
 
     $klient = [
             'nazwa' => $_POST['klient_nazwa'] ?? '',
@@ -294,8 +311,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             $mail->send();
             $firmMailSent = true; // WAŻNE: Aktywujemy status wysyłki
+            logZdarzenie("Wysłano zapytanie do firmy: {$klient['email']}", 'SUCCESS');
         } catch (\Exception $e) {
-            die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Błąd: {$mail->ErrorInfo}");
+            // KLUCZOWY MOMENT: Tu zapisujemy co NAPRAWDĘ się stało
+            logZdarzenie("BŁĄD SMTP (Firma): " . $mail->ErrorInfo, 'ERROR');
+            die("Błąd krytyczny: Nie udało się wysłać zapytania do biura. Logi zostały zapisane.");
         }
 
 // --- MAIL 2: DO KLIENTA (ROLNIKA) ---
