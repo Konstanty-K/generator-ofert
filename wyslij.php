@@ -1,12 +1,12 @@
 <?php
 /**
  * Realizacja: inż. arch. Konstanty Kaszubski
- * Data: Marzec 2026
+ * Data: Maj 2026
  * Projekt: Konfigurator Konsil
- * Wersja: 1.3.5 (...)
+ * Wersja: 1.4.0 (...)
  */
 
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 function logZdarzenie($wiadomosc, $poziom = 'INFO') {
     $data = date('Y-m-d H:i:s');
@@ -59,33 +59,10 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
-    die("BŁĄD: Nie znaleziono pliku autoload.php w " . __DIR__ . "/vendor/");
-} #else {
-  #  echo "Autoloader załadowany poprawnie.";
-#}
-//require_once __DIR__ . '/vendor/autoload.php';
-
-use Dompdf\Dompdf;
-use Dompdf\Options;
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // 1. POBIERANIE DANYCH
+    // 1. POBIERANIE DANYCH Z FORMULARZA (Najpierw definiujemy zmienne!)
     $payload = json_decode($_POST['payload_json'], true);
-
-// FILTR
-    $czarnaLista = ['test', 'proba', 'testing', 'check', 'demo', 'asdasd', '12345'];
-    $daneDoSprawdzenia = mb_strtolower($klient['nazwa'] . ' ' . $klient['email'] . ' ' . $klient['uwagi']);
-
-    foreach ($czarnaLista as $slowo) {
-        if (strpos($daneDoSprawdzenia, $slowo) !== false) {
-            logZdarzenie("Zablokowano próbę wysyłki - słowo kluczowe: $slowo", 'BLOKADA');
-            die("Błąd: Użyto słowa testowego ($slowo). Proszę wypełnić formularz prawdziwymi danymi.");
-        }
-    }
 
     $klient = [
             'nazwa' => $_POST['klient_nazwa'] ?? '',
@@ -103,6 +80,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             'nr' => $_POST['adr_nr'] ?? '',
             'poczta' => $_POST['adr_poczta'] ?? ''
     ];
+
+    // 1a. FILTR JACKA - Sprawdzamy dane dopiero, gdy $klient już istnieje
+    $czarnaLista = ['test', 'proba', 'testing', 'check', 'demo', 'asdasd', '12345'];
+    $daneDoSprawdzenia = mb_strtolower($klient['nazwa'] . ' ' . $klient['email'] . ' ' . $klient['uwagi']);
+
+    foreach ($czarnaLista as $slowo) {
+        if (strpos($daneDoSprawdzenia, $slowo) !== false) {
+            logZdarzenie("Zablokowano próbę wysyłki - słowo kluczowe: $slowo", 'BLOKADA');
+            die("Błąd: Użyto słowa testowego ($slowo). Proszę wypełnić formularz prawdziwymi danymi.");
+        }
+    }
 
     if (!$payload || !$payload['silo']) {
         die("Błąd: Nie wybrano silosu.");
