@@ -6,7 +6,7 @@
  * Wersja: 1.4.0 (...)
  */
 
-ini_set('display_errors', 0);
+ini_set('display_errors', 0); // on/off
 error_reporting(E_ALL);
 function logZdarzenie($wiadomosc, $poziom = 'INFO') {
     $data = date('Y-m-d H:i:s');
@@ -17,6 +17,11 @@ function logZdarzenie($wiadomosc, $poziom = 'INFO') {
 
 $config = require 'config.php';
 require 'vendor/autoload.php';
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // ==========================================
 // 1. OBSŁUGA GET - WIDOK SUKCESU (Wzorzec PRG)
@@ -324,6 +329,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
             } catch (\Exception $e) {
                 $clientMailSent = false;
+                logZdarzenie("BŁĄD SMTP (Klient): " . $e->getMessage(), 'ERROR');
                 // Opcjonalnie logowanie błędu: error_log($e->getMessage());
             }
         }
