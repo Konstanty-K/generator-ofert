@@ -14,8 +14,6 @@ composer.phar
 # Na serwer wgrasz je ręcznie przez FTP.
 *.csv
 !produkty_sample.csv
-system.log
-system_log.php
 
 # --- PLIKI MULTIMEDIALNE ---
 # Ignoruj zdjęcia, jeśli są duże i nie chcesz "zapchać" repozytorium
