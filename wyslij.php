@@ -278,7 +278,7 @@
         $mail = new PHPMailer(true);
         try {
             // --- WŁĄCZENIE SZCZEGÓŁOWYCH LOGÓW SMTP ---
-            $mail->SMTPDebug = 3; // Poziom 3: Komunikaty klienta, serwera i status połączenia
+            $mail->SMTPDebug = 2; // Poziom 3: Komunikaty klienta, serwera i status połączenia
             $mail->Debugoutput = function($str, $level) {
                 logZdarzenie("SMTP DEBUG: " . trim($str), 'DEBUG');
             };
